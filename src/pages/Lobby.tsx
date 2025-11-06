@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from './Header'
 import RoomCard from '../features/rooms/card'
 import { IoFlash } from 'react-icons/io5'
+import { useQuery } from '@tanstack/react-query'
+import { getRooms } from '../services/apiRooms'
 
 // Mock Data
 const mockRooms = [

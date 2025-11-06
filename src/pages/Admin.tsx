@@ -1,8 +1,18 @@
 import { useState } from 'react'
 import { IoAdd, IoArrowBack, IoCheckmarkCircle, IoClose } from 'react-icons/io5'
 import { motion } from 'framer-motion'
+import { getRooms } from '../services/apiRooms'
+import { useQuery } from '@tanstack/react-query'
+import Lobby from './Lobby'
 
 function Admin() {
+  const { data: rooms, isLoading } = useQuery({
+    queryKey: ['rooms'],
+    queryFn: getRooms
+  })
+
+  console.log(rooms)
+
   const [pendingDeposits] = useState([
     {
       id: 1,
@@ -13,6 +23,8 @@ function Admin() {
     },
     { id: 2, user: 'Player_456', amount: 5000, proof: 'receipt.jpg', date: '2025-10-29 10:30' }
   ])
+
+  if (isLoading) return <Lobby />
 
   return (
     <div className="space-y-6 px-4 py-6">

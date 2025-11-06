@@ -104,14 +104,6 @@ function RoomCard({ room, delay }) {
           </div>
         </div>
       )}
-
-      {/* <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className="w-full bg-gradient-to-r from-red-800 to-red-700 py-4 text-xl font-black text-white"
-      >
-        Play ₦{room.entryFee.toLocaleString()}
-      </motion.button> */}
     </motion.div>
   )
 }
