@@ -1,20 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
-import { getRooms } from '../../services/apiRooms'
 import RoomRowDesktop from './RoomRowDesktop'
 import RoomRowMobile from './RoomRowMobile'
 import Spinner from '../../components/Spinner'
+import useGetRooms from '../../hooks/useGetRooms'
 
 function RoomTable() {
-  const {
-    data: rooms,
-    isLoading,
-    error
-  } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: getRooms
-  })
+  const { data: rooms, isPending: isGettingRooms } = useGetRooms()
 
-  if (isLoading) return <Spinner />
+  if (isGettingRooms) return <Spinner />
+
+  if (rooms?.length === 0)
+    return (
+      <div className="flex h-45 items-center justify-center">
+        <div className="text-center">No Rooms, Create new room</div>
+      </div>
+    )
 
   return (
     <div role="table" className="font-xl md:bg-slate-800">
@@ -23,7 +22,7 @@ function RoomTable() {
         <div>Entry Fee</div>
         <div>Prize</div>
         <div>Max Players</div>
-        <div></div>
+        <div>Actions</div>
       </div>
 
       {rooms?.map((room) => (

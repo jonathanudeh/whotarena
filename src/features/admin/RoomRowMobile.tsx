@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function RoomRowMobile({ room }: Props) {
-  const { mutate, isPending, error } = useDeleteRoom()
+  const { mutate, isPending: isDeleting } = useDeleteRoom()
 
   return (
     <div className="mt-3 space-y-2 rounded-lg border border-slate-800 bg-slate-900 p-4 md:hidden">
@@ -28,7 +28,8 @@ export default function RoomRowMobile({ room }: Props) {
 
       <button
         onClick={() => mutate(room.id)}
-        className="flex w-full items-center justify-center gap-2 rounded bg-red-600 px-3 py-2 font-semibold hover:bg-red-700"
+        disabled={isDeleting}
+        className={`flex w-full items-center justify-center gap-2 rounded bg-red-600 px-3 py-2 font-semibold hover:bg-red-700 ${isDeleting ? 'bg-slate-950' : ''}`}
       >
         <LuTrash2 size={18} />
         Delete

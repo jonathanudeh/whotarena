@@ -18,7 +18,7 @@ export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
   const { mutate, isPending: isCreating } = useMutation({
     mutationFn: createRoom,
     onSuccess: () => {
-      toast.success('Roomm created successfully')
+      toast.success('Room created successfully')
       queryClient.invalidateQueries({
         queryKey: ['rooms']
       })

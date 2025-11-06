@@ -19,7 +19,7 @@ export default function RoomRowDesktop({ room }: Props) {
 
       <button
         onClick={() => mutate(room.id)}
-        className="flex items-center gap-2 rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
+        className={`flex items-center gap-2 rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700 ${isDeleting ? 'bg-slate-950' : ''}`}
         disabled={isDeleting}
       >
         <LuTrash2 size={18} />

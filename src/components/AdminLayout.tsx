@@ -13,7 +13,9 @@ function AdminLayout() {
       <AdminSidebar />
       {navbarOpen && <AdminMobileNav navbarOpen={navbarOpen} onNavbarOpen={setNavbarOpen} />}
       <main className="px-5 py-10">
-        <Outlet />
+        <div className="flex max-w-480 flex-col gap-2 overflow-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   )
