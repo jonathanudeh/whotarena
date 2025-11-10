@@ -15,7 +15,7 @@ export async function getRooms() {
 
 //
 export async function createRoom(newRoom: Room) {
-  const { data, error } = await supabase.from('rooms').insert([newRoom]).select()
+  const { data, error } = await supabase.from('rooms').insert([newRoom]).select().single()
 
   if (error) {
     console.error(error)

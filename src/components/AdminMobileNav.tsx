@@ -32,7 +32,7 @@ function AdminMobileNav({ navbarOpen, onNavbarOpen }: AdminMobileNavProps) {
       ></div>
 
       <aside
-        className={`fixed top-0 left-0 z-50 flex h-full w-2/3 transform flex-col gap-5 border-r-[0.8px] border-r-slate-500 bg-slate-950 p-6 text-slate-50 transition-transform md:hidden`}
+        className={`border-r-border-s fixed top-0 left-0 z-50 flex h-full w-2/3 transform flex-col gap-5 border-r-[0.8px] bg-slate-950 p-6 text-slate-50 transition-transform md:hidden`}
       >
         <button onClick={() => onNavbarOpen(false)}>
           <LuX size={26} />

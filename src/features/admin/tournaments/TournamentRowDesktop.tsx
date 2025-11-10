@@ -27,7 +27,6 @@ export default function TournamentRowDesktop({ tournament }: Props) {
         disabled={isDeleting}
       >
         <LuTrash2 size={18} />
-        Delete
       </button>
     </div>
   )

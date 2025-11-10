@@ -3,7 +3,6 @@ import AdminFormRow from '../../../components/AdminFormRow'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { createTournament } from '../../../services/apiTournament'
-import Spinner from '../../../components/Spinner'
 
 interface AddTournamentModalProps {
   onClose: () => void
@@ -39,8 +38,6 @@ export default function AddTournamentModal({ onClose }: AddTournamentModalProps)
   function onErrorForm(errors) {
     console.error(errors)
   }
-
-  if (isCreating) return <Spinner />
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

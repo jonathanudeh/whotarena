@@ -23,7 +23,6 @@ export default function RoomRowDesktop({ room }: Props) {
         disabled={isDeleting}
       >
         <LuTrash2 size={18} />
-        Delete
       </button>
     </div>
   )

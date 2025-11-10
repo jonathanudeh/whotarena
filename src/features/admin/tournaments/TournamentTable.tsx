@@ -17,7 +17,10 @@ function TournamentTable() {
 
   return (
     <div role="table" className="font-xl md:bg-slate-800">
-      <div className="hidden grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] border-b border-slate-700 px-4 py-2 text-slate-400 md:grid">
+      <div
+        role="row"
+        className="hidden grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] border-b border-slate-700 px-4 py-2 text-slate-400 md:grid"
+      >
         <div>Image</div>
         <div>Name</div>
         <div>Entry Fee</div>
@@ -29,7 +32,7 @@ function TournamentTable() {
       </div>
 
       {tournaments?.map((tournament) => (
-        <div key={tournament.id} className="">
+        <div key={tournament.id} role="row">
           <TournamentRowDesktop tournament={tournament} />
           <TournamentRowMobile tournament={tournament} />
         </div>

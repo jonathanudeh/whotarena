@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { IoArrowBack, IoCard, IoCopy, IoSend } from 'react-icons/io5'
+import { formatCurrency } from '../utils/helper'
 
 const mockTransactions = [
   { id: 1, type: 'deposit', amount: 5000, status: 'approved', date: '2025-10-28 14:30' },
@@ -22,16 +23,9 @@ function UserWallet() {
 
   return (
     <div className="space-y-6 px-4">
-      <div className="mb-6 flex items-center gap-4">
-        <button onClick={() => window.history.back()} className="text-yellow-400">
-          <IoArrowBack className="h-6 w-6" />
-        </button>
-        <h1 className="text-3xl font-bold">Wallet</h1>
-      </div>
-
-      <div className="rounded-3xl bg-linear-to-r from-yellow-500 to-yellow-400 p-6 text-center">
-        <p className="mb-2 text-sm font-medium text-red-900">Available Balance</p>
-        <p className="text-5xl font-black text-red-900">₦ 2205</p>
+      <div className="bg-card-bg text-main-text rounded-3xl p-6 text-center">
+        <p className="mb-2 text-sm font-medium">Available Balance</p>
+        <p className="text-5xl font-black">{formatCurrency(2205)}</p>
       </div>
 
       <div className="flex gap-4">
@@ -39,7 +33,7 @@ function UserWallet() {
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('deposit')}
           className={`flex-1 rounded-xl py-3 font-bold transition-colors ${
-            activeTab === 'deposit' ? 'bg-yellow-400 text-red-900' : 'bg-red-800/50 text-white'
+            activeTab === 'deposit' ? 'text-main-text bg-green-700' : 'bg-card-bg text-main-text'
           }`}
         >
           Deposit
@@ -48,7 +42,7 @@ function UserWallet() {
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('withdraw')}
           className={`flex-1 rounded-xl py-3 font-bold transition-colors ${
-            activeTab === 'withdraw' ? 'bg-yellow-400 text-red-900' : 'bg-red-800/50 text-white'
+            activeTab === 'withdraw' ? 'text-main-text bg-green-700' : 'bg-card-bg text-main-text'
           }`}
         >
           Withdraw
@@ -57,8 +51,8 @@ function UserWallet() {
 
       {activeTab === 'deposit' ? (
         <div className="space-y-4">
-          <div className="space-y-4 rounded-2xl bg-red-800/50 p-6">
-            <h3 className="text-lg font-bold text-yellow-400">Bank Details</h3>
+          <div className="bg-card-bg space-y-4 rounded-2xl p-6">
+            <h3 className="text-lg font-bold text-green-400">Bank Details</h3>
             <div className="space-y-2">
               <InfoRow label="Bank" value={bankDetails.bank} copy={false} />
               <InfoRow label="Account Number" value={bankDetails.accountNumber} copy />
@@ -66,27 +60,27 @@ function UserWallet() {
             </div>
           </div>
 
-          <div className="space-y-4 rounded-2xl bg-red-800/50 p-6">
-            <h3 className="text-lg font-bold text-yellow-400">Submit Deposit</h3>
+          <div className="bg-card-bg space-y-4 rounded-2xl p-6">
+            <h3 className="text-lg font-bold text-green-400">Submit Deposit</h3>
             <input
               type="number"
               placeholder="Enter amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full rounded-xl border-2 border-yellow-400/30 bg-red-900 px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-yellow-400"
+              className="bg-background border-border/30 focus:border-border w-full rounded-xl border-2 px-4 py-3 text-white placeholder-gray-400 outline-none"
             />
             <div className="rounded-xl border-2 border-dashed border-yellow-400/30 p-6 text-center">
-              <IoCard className="mx-auto mb-2 h-12 w-12 text-yellow-400" />
+              <IoCard className="mx-auto mb-2 h-12 w-12 text-green-400" />
               <p className="mb-2 text-sm text-gray-300">Upload Payment Proof</p>
               <input type="file" className="hidden" id="proof" />
-              <label htmlFor="proof" className="cursor-pointer text-sm font-medium text-yellow-400">
+              <label htmlFor="proof" className="cursor-pointer text-sm font-medium text-green-400">
                 Choose File
               </label>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-yellow-500 to-yellow-400 py-4 font-bold text-red-900"
+              className="text-main-text flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-green-700 to-green-800 py-4 font-bold"
             >
               <IoSend className="h-5 w-5" />
               Submit Request
@@ -95,17 +89,17 @@ function UserWallet() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="space-y-4 rounded-2xl bg-red-800/50 p-6">
-            <h3 className="text-lg font-bold text-yellow-400">Withdraw Funds</h3>
+          <div className="bg-card-bg space-y-4 rounded-2xl p-6">
+            <h3 className="text-lg font-bold text-green-400">Withdraw Funds</h3>
             <input
               type="number"
               placeholder="Enter amount"
-              className="w-full rounded-xl border-2 border-yellow-400/30 bg-red-900 px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-yellow-400"
+              className="bg-background focus:border-border border-border/30 w-full rounded-xl border-2 px-4 py-3 text-white placeholder-gray-400 outline-none"
             />
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full rounded-xl bg-linear-to-r from-yellow-500 to-yellow-400 py-4 font-bold text-red-900"
+              className="text-main-text w-full rounded-xl bg-green-700 py-4 font-bold"
             >
               Request Withdrawal
             </motion.button>
@@ -113,8 +107,8 @@ function UserWallet() {
         </div>
       )}
 
-      <div className="rounded-2xl bg-red-800/50 p-6">
-        <h3 className="mb-4 text-lg font-bold text-yellow-400">Recent Transactions</h3>
+      <div className="bg-card-bg rounded-2xl p-6">
+        <h3 className="mb-4 text-lg font-bold text-green-400">Recent Transactions</h3>
         <div className="space-y-3">
           {mockTransactions.map((tx) => (
             <TransactionItem key={tx.id} transaction={tx} />
@@ -134,7 +128,7 @@ function InfoRow({ label, value, copy }) {
       <div className="flex items-center gap-2">
         <span className="font-bold">{value}</span>
         {copy && (
-          <button className="text-yellow-400">
+          <button className="text-green-400">
             <IoCopy className="h-4 w-4" />
           </button>
         )}
@@ -164,7 +158,7 @@ function TransactionItem({ transaction }) {
   }
 
   return (
-    <div className="flex items-center justify-between rounded-xl bg-red-900/50 p-3">
+    <div className="bg-background flex items-center justify-between rounded-xl p-3">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{getIcon()}</span>
         <div>

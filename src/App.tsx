@@ -1,7 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import AppLayout from './components/AppLayout'
 import Error from './components/Error'
 import Lobby from './pages/Lobby'
 import Signup from './pages/Signup'
@@ -19,6 +18,7 @@ import AdminUsers from './pages/AdminUsers'
 import AdminSettings from './pages/AdminSettings'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'react-hot-toast'
+import UserLayout from './components/UserLayout'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,50 +30,35 @@ const queryClient = new QueryClient({
 
 const router = createBrowserRouter([
   {
-    element: <AppLayout />,
+    element: <UserLayout />,
     errorElement: <Error />,
     children: [
-      {
-        path: '/',
-        element: <Lobby />
-      },
-      {
-        path: '/profile',
-        element: <UserProfile />
-      },
-      {
-        path: '/wallet',
-        element: <UserWallet />
-      },
-      {
-        path: '/settings',
-        element: <Settings />
-      },
-      {
-        path: '/tournament',
-        element: <Tournament />
-      },
-      {
-        path: '/admin',
-        element: <AdminLayout />,
-        children: [
-          { index: true, path: 'dashboard', element: <AdminDashboard /> },
-          { path: 'rooms', element: <AdminRooms /> },
-          { path: 'tournaments', element: <AdminTournaments /> },
-          { path: 'transactions', element: <AdminTransactions /> },
-          { path: 'users', element: <AdminUsers /> },
-          { path: 'settings', element: <AdminSettings /> }
-        ]
-      },
-      {
-        path: '/signup',
-        element: <Signup />
-      },
-      {
-        path: '/login',
-        element: <Login />
-      }
+      { path: '/', element: <Lobby /> },
+      { path: '/profile', element: <UserProfile /> },
+      { path: '/wallet', element: <UserWallet /> },
+      { path: '/settings', element: <Settings /> },
+      { path: '/tournament', element: <Tournament /> }
     ]
+  },
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    children: [
+      { index: true, path: 'dashboard', element: <AdminDashboard /> },
+      { path: 'rooms', element: <AdminRooms /> },
+      { path: 'tournaments', element: <AdminTournaments /> },
+      { path: 'transactions', element: <AdminTransactions /> },
+      { path: 'users', element: <AdminUsers /> },
+      { path: 'settings', element: <AdminSettings /> }
+    ]
+  },
+  {
+    path: '/signup',
+    element: <Signup />
+  },
+  {
+    path: '/login',
+    element: <Login />
   }
 ])
 

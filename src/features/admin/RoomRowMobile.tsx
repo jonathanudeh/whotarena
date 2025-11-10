@@ -32,7 +32,6 @@ export default function RoomRowMobile({ room }: Props) {
         className={`flex w-full items-center justify-center gap-2 rounded bg-red-600 px-3 py-2 font-semibold hover:bg-red-700 ${isDeleting ? 'bg-slate-950' : ''}`}
       >
         <LuTrash2 size={18} />
-        Delete
       </button>
     </div>
   )

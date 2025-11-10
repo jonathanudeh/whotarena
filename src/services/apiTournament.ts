@@ -23,6 +23,7 @@ export async function createTournament(newTournament: Tournament) {
     .from('tournaments')
     .insert([{ ...newTournament, image: imagePath }])
     .select()
+    .single()
 
   if (error) {
     console.error(error)

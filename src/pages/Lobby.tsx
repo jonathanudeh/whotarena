@@ -1,81 +1,22 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
-import Header from './Header'
-import RoomCard from '../features/rooms/card'
 import { IoFlash } from 'react-icons/io5'
-import { useQuery } from '@tanstack/react-query'
-import { getRooms } from '../services/apiRooms'
+import useGetRooms from '../hooks/useGetRooms'
+import RoomCard from '../features/rooms/RoomCard'
+import Spinner from '../components/Spinner'
+import useGetTournaments from '../hooks/useGetTournament'
+import TournamentCard from '../features/Tournament/TournamentCard'
 
-// Mock Data
-const mockRooms = [
-  {
-    id: 2,
-    type: 'regular',
-    prize: 26000,
-    entryFee: 15000,
-    currentPlayers: 2,
-    maxPlayers: 2,
-    timeLeft: '00:37',
-    status: 'waiting'
-  },
-  {
-    id: 1,
-    type: 'tournament',
-    title: 'Whot Naira League',
-    prize: 30000,
-    entryFee: 300,
-    players: 2053,
-    maxPlayers: 3000,
-    timeLeft: '08h:56m',
-    status: 'filling'
-  },
-  {
-    id: 3,
-    type: 'regular',
-    prize: 13500,
-    entryFee: 8000,
-    currentPlayers: 0,
-    maxPlayers: 2,
-    timeLeft: '00:44',
-    status: 'waiting'
-  },
-  {
-    id: 4,
-    type: 'regular',
-    prize: 5000,
-    entryFee: 3000,
-    currentPlayers: 1,
-    maxPlayers: 2,
-    timeLeft: '00:29',
-    status: 'waiting'
-  }
-]
+export default function Lobby() {
+  const { data: rooms = [], isPending: isLoadingRooms } = useGetRooms()
+  const { data: tournments = [], isPending: isLoadingTournament } = useGetTournaments()
 
-function Lobby() {
-  const [showAuth, setShowAuth] = useState(false)
-  const [authMode, setAuthMode] = useState('login')
+  if (isLoadingRooms || isLoadingTournament) return <Spinner />
 
   return (
-    <div className="bg-950 min-h-screen text-white">
-      {/* Header */}
-      <Header />
-
-      {/* Main Content */}
-      <main className="pb-8">
-        <LobbyPage />
-      </main>
-    </div>
-  )
-}
-
-export default Lobby
-
-function LobbyPage() {
-  return (
-    <div className="space-y-4 px-4">
+    <>
       <motion.div
-        className="py-4 text-center"
+        className="px-4 text-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -85,14 +26,27 @@ function LobbyPage() {
           <IoFlash className="h-6 w-6" />
         </div>
       </motion.div>
+      {
+        <ul className="no-scrollbar relative flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4">
+          {tournments.map((tournament, index) => (
+            <TournamentCard key={tournament.id} tournament={tournament} delay={index * 0.1} />
+          ))}
 
-      {mockRooms.map((room, index) =>
-        room.type === 'tournament' ? <RoomCard key={room.id} room={room} delay={index * 0.1} /> : ''
-      )}
-
-      {mockRooms.map((room, index) =>
-        room.type !== 'tournament' ? <RoomCard key={room.id} room={room} delay={index * 0.1} /> : ''
-      )}
-    </div>
+          {/* Scroll Indicator */}
+          <div className="pointer-events-none absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-1 md:hidden">
+            <div className="h-1 w-2 rounded-full bg-white/40" />
+            <div className="h-1 w-4 animate-pulse rounded-full bg-white/80" />
+            <div className="h-1 w-2 rounded-full bg-white/40" />
+          </div>
+        </ul>
+      }
+      {
+        <ul className="flex flex-col justify-around gap-4 px-4 pt-6 md:flex-row md:flex-wrap md:items-start md:gap-3">
+          {rooms.map((room, index) => (
+            <RoomCard key={room.id} room={room} delay={index * 0.1} />
+          ))}
+        </ul>
+      }
+    </>
   )
 }

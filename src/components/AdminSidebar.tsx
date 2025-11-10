@@ -18,7 +18,7 @@ const navItems = [
 ]
 function AdminSidebar() {
   return (
-    <aside className="row-span-full hidden flex-col gap-10 border-r-[0.8px] border-r-slate-500 bg-slate-950 p-6 md:flex">
+    <aside className="bg-background border-r-border-s row-span-full hidden flex-col gap-10 border-r-[0.8px] p-6 md:flex">
       <div>Admin sidebar</div>
 
       <nav className="space-y-2">

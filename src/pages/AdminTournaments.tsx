@@ -7,7 +7,7 @@ function AdminTournaments() {
   const [showForm, setShowForm] = useState(false)
 
   return (
-    <div className="">
+    <>
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-xl font-bold uppercase md:text-2xl">Manage Tournaments</h1>
 
@@ -22,7 +22,7 @@ function AdminTournaments() {
       <TournamentTable />
 
       {showForm && <AddTournamentModal onClose={() => setShowForm(false)} />}
-    </div>
+    </>
   )
 }
 
