@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import Error from './components/Error'
@@ -19,6 +19,8 @@ import AdminSettings from './pages/AdminSettings'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'react-hot-toast'
 import UserLayout from './components/UserLayout'
+import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedAdminRoute from './components/ProtectedAdminRoute'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,10 +32,15 @@ const queryClient = new QueryClient({
 
 const router = createBrowserRouter([
   {
-    element: <UserLayout />,
+    element: (
+      <ProtectedRoute>
+        <UserLayout />
+      </ProtectedRoute>
+    ),
     errorElement: <Error />,
     children: [
-      { path: '/', element: <Lobby /> },
+      { index: true, element: <Navigate to="/lobby" replace /> },
+      { path: '/lobby', element: <Lobby /> },
       { path: '/profile', element: <UserProfile /> },
       { path: '/wallet', element: <UserWallet /> },
       { path: '/settings', element: <Settings /> },
@@ -42,7 +49,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <ProtectedAdminRoute>
+        <AdminLayout />
+      </ProtectedAdminRoute>
+    ),
     children: [
       { index: true, path: 'dashboard', element: <AdminDashboard /> },
       { path: 'rooms', element: <AdminRooms /> },

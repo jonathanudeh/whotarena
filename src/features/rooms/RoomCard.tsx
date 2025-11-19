@@ -3,7 +3,12 @@ import { motion } from 'framer-motion'
 import { LuClock, LuDoorOpen, LuUsers } from 'react-icons/lu'
 import { formatCurrency } from '../../utils/helper'
 
-function RoomCard({ room, delay }) {
+interface RoomCardProps {
+  room: {}
+  delay: number
+}
+
+function RoomCard({ room, delay }: RoomCardProps) {
   const { name, entryFee, prize, maxPlayers } = room
 
   return (

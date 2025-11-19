@@ -4,9 +4,9 @@ import Spinner from '../../components/Spinner'
 import useGetRooms from '../../hooks/useGetRooms'
 
 function RoomTable() {
-  const { data: rooms, isPending: isGettingRooms } = useGetRooms()
+  const { rooms, isLoadingRooms } = useGetRooms()
 
-  if (isGettingRooms) return <Spinner />
+  if (isLoadingRooms) return <Spinner />
 
   if (rooms?.length === 0)
     return (

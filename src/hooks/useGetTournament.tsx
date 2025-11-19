@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { getTournaments } from '../services/apiTournament'
+import { getTournaments as getTournamentsApi } from '../services/apiTournament'
 
 function useGetTournaments() {
-  return useQuery({
+  const { data: getTournaments, isLoading: IsLoadingTournaments } = useQuery({
     queryKey: ['tournaments'],
-    queryFn: getTournaments
+    queryFn: getTournamentsApi
   })
+
+  return { getTournaments, IsLoadingTournaments }
 }
 
 export default useGetTournaments

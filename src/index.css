@@ -7,6 +7,9 @@
   --color-border-s: #314158;
   --color-main-text: #e2e8f0;
   --color-em-text: #00c950;
+  --color-btn-primary: #008236;
+  --color-btn-pri-hover: #00a63e;
+  --color-text-danger: #e7000b;
 
   --color-seondary: oklch(93.6% 0.032 17.717);
   --color-gold: oklch(76.9% 0.188 70.08);

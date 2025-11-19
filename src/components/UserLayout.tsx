@@ -1,6 +1,6 @@
 import UserSidebar from '../features/user/UserSidebar'
 import { Outlet } from 'react-router-dom'
-import Header from '../pages/Header'
+import Header from '../components/Header'
 import UserMobileNav from '../features/user/UserMobileNav'
 import { useState } from 'react'
 

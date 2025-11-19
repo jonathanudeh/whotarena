@@ -1,56 +1,47 @@
 import { IoArrowBack, IoLogOut } from 'react-icons/io5'
-import { Link, useNavigate } from 'react-router-dom'
 import StatCard from '../features/user/StatCard'
 import { formatCurrency } from '../utils/helper'
+import Button from '../components/Button'
+import { useLogOut } from '../features/auth/useLogOut'
+import SpinnerMini from '../components/SpinnerMini'
+import { useUserProfile } from '../features/user/useUserProfile'
+import { useUser } from '../features/auth/useUser'
+import EditableUsername from '../features/user/EditableUsername'
+import AvatarMenu from '../features/user/AvatarMenu'
 
 function UserProfile() {
-  const navigate = useNavigate()
-  const user = {
-    name: 'Player_123',
-    email: 'player@whotarena.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-    gamesPlayed: 45,
-    gamesWon: 28,
-    winRate: 62,
-    totalEarnings: 150000
-  }
-  // bg-linear-to-r from-yellow-500 to-yellow-400
+  const { logOut, isLoggingOut } = useLogOut()
+
+  const { userProfile = {}, isLoadingUserProfile } = useUserProfile()
+  const { user = {} } = useUser()
+  const { email } = user
+  const { username, avatar, gamesPlayed, gamesWon, rank, totalEarnings } = userProfile
+
+  if (isLoadingUserProfile) return <SpinnerMini />
 
   return (
     <div className="space-y-6 px-4">
-      <div className="bg-card-bg border-border/20 rounded-3xl border p-6 text-center">
-        <div className="border-border/50 mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full border-4">
-          <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
-        </div>
-        <h2 className="text-slate- text-2xl font-black">{user.name}</h2>
-        <p className="font-medium text-slate-200">{user.email}</p>
+      <div className="bg-card-bg border-border/20 flex flex-col items-center justify-center rounded-3xl border p-6 text-center">
+        {/* <div className="border-border/50 mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full border-4">
+          <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
+        </div> */}
+        <AvatarMenu avatarUrl={avatar} />
+        <EditableUsername initialName={username} />
+        <p className="font-medium text-slate-200/50">{email}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Games Played" value={user.gamesPlayed} />
-        <StatCard label="Games Won" value={user.gamesWon} />
-        <StatCard label="Win Rate" value={`${user.winRate}%`} />
-        <StatCard label="Total Earnings" value={formatCurrency(user.totalEarnings)} />
+        <StatCard label="Games Played" value={gamesPlayed} />
+        <StatCard label="Games Won" value={gamesWon} />
+        <StatCard label="Rank" value={`${rank || '0 ranks'}`} />
+        <StatCard label="Total Earnings" value={formatCurrency(totalEarnings)} />
       </div>
 
-      <Link
-        to="/login"
-        className="bg-card-bg flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-white"
-      >
-        <IoLogOut className="h-5 w-5" />
-        Logout
-      </Link>
+      <Button size="large" variation="logOut" disabled={isLoggingOut} onClick={logOut}>
+        <IoLogOut /> {isLoggingOut ? <SpinnerMini /> : 'Log out'}
+      </Button>
     </div>
   )
 }
 
 export default UserProfile
-
-{
-  /* <div className="mb-6 flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="text-yellow-400">
-          <IoArrowBack className="h-6 w-6" />
-        </button>
-        <h1 className="text-3xl font-bold">Profile</h1>
-      </div> */
-}

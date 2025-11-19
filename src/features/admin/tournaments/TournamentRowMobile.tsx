@@ -1,14 +1,13 @@
 import { LuTrash2 } from 'react-icons/lu'
-import type { Tournament } from '../../../types/room'
 import { useDeleteTournament } from '../../../hooks/useDeleteTournament'
+import type { FetchedTournament } from '../../../types/tournament'
 
 interface Props {
-  tournament: Tournament
-  //   onDelete: (id: number) => void
+  tournament: FetchedTournament
 }
 
 export default function TournamentRowMobile({ tournament }: Props) {
-  const { mutate, isPending: isDeleting } = useDeleteTournament()
+  const { deleteTournament, isDeleting } = useDeleteTournament()
 
   return (
     <div className="mt-3 space-y-2 rounded-lg border border-slate-700 bg-slate-900 p-4 md:hidden">
@@ -41,7 +40,9 @@ export default function TournamentRowMobile({ tournament }: Props) {
       </p>
 
       <button
-        onClick={() => mutate(tournament.id)}
+        onClick={() => {
+          if (tournament.id) deleteTournament(tournament.id)
+        }}
         disabled={isDeleting}
         className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded bg-red-600 px-3 py-2 font-semibold ${isDeleting ? 'bg-slate-950' : 'hover:bg-red-700'}`}
       >

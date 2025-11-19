@@ -1,41 +1,27 @@
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import AdminFormRow from '../../../components/AdminFormRow'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import { createTournament } from '../../../services/apiTournament'
-
-interface AddTournamentModalProps {
-  onClose: () => void
-}
+import { useCreateTournament } from './useCreateTournament'
+import type { AddTournamentModalProps, FormTournament } from '../../../types/tournament'
 
 export default function AddTournamentModal({ onClose }: AddTournamentModalProps) {
-  const { register, handleSubmit, reset, formState } = useForm()
+  const { register, handleSubmit, reset, formState } = useForm<FormTournament>()
+  const { createTournament, isCreating } = useCreateTournament()
 
   const { errors } = formState
 
-  const queryClient = useQueryClient()
-
-  const { mutate, isPending: isCreating } = useMutation({
-    mutationFn: createTournament,
-    onSuccess: () => {
-      toast.success('Tournament created successfully')
-      queryClient.invalidateQueries({
-        queryKey: ['tournaments']
-      })
-      reset()
-      onClose()
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    }
-  })
-
-  function onSubmitForm(data) {
-    console.log(data)
-    mutate({ ...data, image: data.image[0] })
+  function onSubmitForm(data: FormTournament) {
+    createTournament(
+      { ...data, image: data.image[0] },
+      {
+        onSuccess: () => {
+          reset()
+          onClose()
+        }
+      }
+    )
   }
 
-  function onErrorForm(errors) {
+  function onErrorForm(errors: FieldErrors<FormTournament>) {
     console.error(errors)
   }
 

@@ -2,29 +2,23 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { IoWallet, IoAdd } from 'react-icons/io5'
 import { LuMenu } from 'react-icons/lu'
+import { useUserProfile } from '../features/user/useUserProfile'
 
 interface HeaderProps {
   onNavbarOpen: (value: boolean) => void
 }
 
-const user = {
-  name: 'Player_123',
-  email: 'player@whotarena.com',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-  gamesPlayed: 45,
-  gamesWon: 28,
-  winRate: 62,
-  totalEarnings: 150000
-}
-
 function Header({ onNavbarOpen }: HeaderProps) {
+  const { userProfile = {} } = useUserProfile()
+  const { avatar } = userProfile
+
   return (
     <header className="bg-background sticky top-0 z-40 flex items-center justify-between border-b border-b-slate-500 p-4 backdrop-blur-sm">
       <Link
         to="/profile"
         className="h-14 w-14 overflow-hidden rounded-xl border-4 border-[#6F41E2]/20 bg-[#1D1533] md:hidden"
       >
-        <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
+        <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
       </Link>
 
       <Link

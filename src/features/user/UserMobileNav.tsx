@@ -8,6 +8,7 @@ import {
   LuX
 } from 'react-icons/lu'
 import { NavLink } from 'react-router-dom'
+import LogOut from '../auth/LogOut'
 
 interface UserMobileNavProps {
   navbarOpen: boolean
@@ -60,10 +61,7 @@ function UserMobileNav({ navbarOpen, onNavbarOpen }: UserMobileNavProps) {
           })}
         </nav>
 
-        <NavLink to="/login" className="flex items-center gap-2">
-          <LuLogOut size={20} />
-          Logout
-        </NavLink>
+        <LogOut />
       </aside>
     </>
   )

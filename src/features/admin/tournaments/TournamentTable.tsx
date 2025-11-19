@@ -4,11 +4,11 @@ import TournamentRowDesktop from './TournamentRowDesktop'
 import TournamentRowMobile from './TournamentRowMobile'
 
 function TournamentTable() {
-  const { data: tournaments, isPending: isGettingRooms } = useGetTournaments()
+  const { getTournaments, IsLoadingTournaments } = useGetTournaments()
 
-  if (isGettingRooms) return <Spinner />
+  if (IsLoadingTournaments) return <Spinner />
 
-  if (tournaments?.length === 0)
+  if (getTournaments?.length === 0)
     return (
       <div className="flex h-45 items-center justify-center">
         <div className="text-center">No tournaments, Create new tournament</div>
@@ -31,7 +31,7 @@ function TournamentTable() {
         <div>Action</div>
       </div>
 
-      {tournaments?.map((tournament) => (
+      {getTournaments?.map((tournament) => (
         <div key={tournament.id} role="row">
           <TournamentRowDesktop tournament={tournament} />
           <TournamentRowMobile tournament={tournament} />

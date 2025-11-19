@@ -1,5 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { LuLayoutDashboard, LuTrophy, LuWallet, LuSettings, LuUser, LuLogOut } from 'react-icons/lu'
+import LogOut from '../auth/LogOut'
+import { useUserProfile } from './useUserProfile'
 
 const navItems = [
   { label: 'Lobby', to: '/', icon: LuLayoutDashboard, end: true },
@@ -9,24 +11,19 @@ const navItems = [
   { label: 'Settings', to: '/settings', icon: LuSettings }
 ]
 
-const user = {
-  name: 'Player_123',
-  email: 'player@whotarena.com',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-  gamesPlayed: 45,
-  gamesWon: 28,
-  winRate: 62,
-  totalEarnings: 150000
-}
+//  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
 
 function UserSidebar() {
+  const { userProfile = {} } = useUserProfile()
+  const { avatar } = userProfile
+
   return (
     <aside className="border-r-border-s row-span-full hidden flex-col gap-10 border-r-[0.8px] bg-slate-950 p-6 md:flex">
       <Link
         to="/profile"
         className="h-14 w-14 overflow-hidden rounded-xl border-4 border-yellow-400 bg-yellow-500"
       >
-        <img src={user.avatar} alt="Avatar" className="h-full w-full object-cover" />
+        <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
       </Link>
 
       <nav className="space-y-2">
@@ -51,10 +48,7 @@ function UserSidebar() {
         })}
       </nav>
 
-      <NavLink to="/login" className="flex items-center gap-2">
-        <LuLogOut size={20} />
-        Logout
-      </NavLink>
+      <LogOut />
     </aside>
   )
 }
