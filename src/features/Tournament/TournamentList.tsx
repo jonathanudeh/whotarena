@@ -3,13 +3,13 @@ import TournamentCard from './TournamentCard'
 import useGetTournaments from '../../hooks/useGetTournament'
 
 export default function TournamentList() {
-  const { tournaments = [], IsLoadingTournaments } = useGetTournaments()
+  const { getTournaments = [], IsLoadingTournaments } = useGetTournaments()
 
   if (IsLoadingTournaments) return <Spinner />
 
   return (
     <ul className="no-scrollbar relative flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4">
-      {tournaments.map((tournament, index) => (
+      {getTournaments.map((tournament, index) => (
         <TournamentCard key={tournament.id} tournament={tournament} delay={index * 0.1} />
       ))}
 

@@ -1,44 +1,52 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { HiPencil } from 'react-icons/hi'
-import { useMutation } from '@tanstack/react-query'
 import { useUpdateUsername } from './useUpdateUsername'
 import { useUser } from '../auth/useUser'
 import SpinnerMini from '../../components/SpinnerMini'
-// import supabase from "../supabase";
+import { useUserProfile } from './useUserProfile'
 
-export default function EditableUsername({ initialName }) {
+export default function EditableUsername() {
+  const { userProfile = {}, isLoadingUserProfile } = useUserProfile()
+  const { username: initialName } = userProfile
+
   const [editing, setEditing] = useState(false)
   const [username, setUsername] = useState(initialName)
   const { updateUsername, isUpdatingUsername } = useUpdateUsername()
   const { user } = useUser()
   const userId = user?.id
+  const email = user?.email
 
-  const inputRef = useRef()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const handleBlur = () => {
-    // updateName.mutate(username)
-    setEditing(false)
-    console.log({ userId, username })
+    const trimmedUsername = username.replaceAll(' ', '')
+    console.log({ userId, trimmedUsername })
+
+    // Check if the username is empty or the same as the initial name
+    if (!trimmedUsername || trimmedUsername === initialName) {
+      // Close editing without submitting
+      setEditing(false)
+      setUsername(initialName)
+      return
+    }
 
     if (!userId) return
-    updateUsername({ id: userId, username })
+    updateUsername(
+      { id: userId, username: trimmedUsername },
+      {
+        onSettled: () => setEditing(false)
+      }
+    )
   }
 
-  if (isUpdatingUsername) return <SpinnerMini />
-
-  // const updateName = useMutation({
-  // mutationFn: async (newName) => {
-  //   const { error } = await supabase
-  //     .from("profiles")
-  //     .update({ username: newName })
-  //     .eq("id", supabase.auth.getUser().id);
-  //   if (error) throw error;
-  // },
-  // onSuccess: () => setEditing(false),
-  // })
+  useEffect(() => {
+    if (initialName && !editing && initialName !== username) {
+      setUsername(initialName)
+    }
+  }, [initialName, username, editing])
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center justify-center gap-2">
       {editing ? (
         <input
           ref={inputRef}
@@ -47,20 +55,27 @@ export default function EditableUsername({ initialName }) {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           onBlur={handleBlur}
-          // onKeyDown={(e) => {
-          //   if (e.key === 'Enter') inputRef.current.blur()
-          // }}
         />
       ) : (
         <>
-          <span className="text-lg font-semibold">{username}</span>
-          <HiPencil
-            size={18}
-            className="cursor-pointer text-gray-500"
-            onClick={() => setEditing(true)}
-          />
+          <div className="p flex items-center gap-2">
+            {isUpdatingUsername || isLoadingUserProfile ? (
+              <SpinnerMini />
+            ) : (
+              <>
+                <span className="text-lg font-semibold">{username}</span>
+                <HiPencil
+                  size={18}
+                  className="cursor-pointer text-gray-500"
+                  onClick={() => setEditing(true)}
+                />
+              </>
+            )}
+          </div>
         </>
       )}
+
+      <p className="font-medium text-slate-200/50">{email}</p>
     </div>
   )
 }

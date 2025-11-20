@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
-import { LuLayoutDashboard, LuTrophy, LuWallet, LuSettings, LuUser, LuLogOut } from 'react-icons/lu'
+import { LuLayoutDashboard, LuTrophy, LuWallet, LuSettings, LuUser } from 'react-icons/lu'
 import LogOut from '../auth/LogOut'
 import { useUserProfile } from './useUserProfile'
 
@@ -21,7 +21,7 @@ function UserSidebar() {
     <aside className="border-r-border-s row-span-full hidden flex-col gap-10 border-r-[0.8px] bg-slate-950 p-6 md:flex">
       <Link
         to="/profile"
-        className="h-14 w-14 overflow-hidden rounded-xl border-4 border-yellow-400 bg-yellow-500"
+        className="border-avatar-border bg-avatar-bg h-14 w-14 overflow-hidden rounded-xl border-4"
       >
         <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
       </Link>

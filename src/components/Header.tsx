@@ -16,7 +16,7 @@ function Header({ onNavbarOpen }: HeaderProps) {
     <header className="bg-background sticky top-0 z-40 flex items-center justify-between border-b border-b-slate-500 p-4 backdrop-blur-sm">
       <Link
         to="/profile"
-        className="h-14 w-14 overflow-hidden rounded-xl border-4 border-[#6F41E2]/20 bg-[#1D1533] md:hidden"
+        className="border-avatar-border bg-avatar-bg h-14 w-14 overflow-hidden rounded-xl border-4 md:hidden"
       >
         <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
       </Link>

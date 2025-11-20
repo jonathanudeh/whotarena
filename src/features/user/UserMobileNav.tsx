@@ -1,17 +1,8 @@
-import {
-  LuLayoutDashboard,
-  LuLogOut,
-  LuSettings,
-  LuTrophy,
-  LuUser,
-  LuWallet,
-  LuX
-} from 'react-icons/lu'
+import { LuLayoutDashboard, LuSettings, LuTrophy, LuUser, LuWallet, LuX } from 'react-icons/lu'
 import { NavLink } from 'react-router-dom'
 import LogOut from '../auth/LogOut'
 
 interface UserMobileNavProps {
-  navbarOpen: boolean
   onNavbarOpen: (value: boolean) => void
 }
 
@@ -23,7 +14,7 @@ const navItems = [
   { label: 'Settings', to: '/settings', icon: LuSettings }
 ]
 
-function UserMobileNav({ navbarOpen, onNavbarOpen }: UserMobileNavProps) {
+function UserMobileNav({ onNavbarOpen }: UserMobileNavProps) {
   return (
     <>
       <div

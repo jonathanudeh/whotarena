@@ -11,7 +11,7 @@ function UserLayout() {
     <div className="bg-background min-h-screen text-white md:grid md:h-screen md:grid-cols-[20rem_1fr] md:grid-rows-[auto_1fr]">
       <Header onNavbarOpen={setNavbarOpen} />
       <UserSidebar />
-      {navbarOpen && <UserMobileNav navbarOpen={navbarOpen} onNavbarOpen={setNavbarOpen} />}
+      {navbarOpen && <UserMobileNav onNavbarOpen={setNavbarOpen} />}
 
       <main className="no-scrollbar overflow-scroll py-8">
         <Outlet />
