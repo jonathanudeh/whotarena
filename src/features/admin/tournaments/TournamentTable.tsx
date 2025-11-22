@@ -4,7 +4,7 @@ import TournamentRowDesktop from './TournamentRowDesktop'
 import TournamentRowMobile from './TournamentRowMobile'
 
 function TournamentTable() {
-  const { getTournaments, IsLoadingTournaments } = useGetTournaments()
+  const { getTournaments = [], IsLoadingTournaments } = useGetTournaments()
 
   if (IsLoadingTournaments) return <Spinner />
 

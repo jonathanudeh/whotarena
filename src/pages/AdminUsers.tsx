@@ -1,5 +1,7 @@
+import AllUsers from '../features/admin/adminuser/AllUsers'
+
 function AdminUsers() {
-  return <div>AdminUsers</div>
+  return <AllUsers />
 }
 
 export default AdminUsers

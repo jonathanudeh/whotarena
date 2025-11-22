@@ -8,9 +8,9 @@ import {
   LuUsers,
   LuSettings
 } from 'react-icons/lu'
+import { useUserProfile } from '../features/user/useUserProfile'
 
 interface AdminMobileNavProps {
-  navbarOpen: boolean
   onNavbarOpen: (value: boolean) => void
 }
 
@@ -23,7 +23,10 @@ const navItems = [
   { label: 'Settings', to: '/admin/settings', icon: LuSettings }
 ]
 
-function AdminMobileNav({ navbarOpen, onNavbarOpen }: AdminMobileNavProps) {
+function AdminMobileNav({ onNavbarOpen }: AdminMobileNavProps) {
+  const { userProfile = {} } = useUserProfile()
+  const { avatar } = userProfile
+
   return (
     <>
       <div
@@ -34,9 +37,14 @@ function AdminMobileNav({ navbarOpen, onNavbarOpen }: AdminMobileNavProps) {
       <aside
         className={`border-r-border-s fixed top-0 left-0 z-50 flex h-full w-2/3 transform flex-col gap-5 border-r-[0.8px] bg-slate-950 p-6 text-slate-50 transition-transform md:hidden`}
       >
-        <button onClick={() => onNavbarOpen(false)}>
-          <LuX size={26} />
-        </button>
+        <div className="flex justify-between">
+          <div className="border-avatar-border bg-avatar-bg h-10 w-10 overflow-hidden rounded-lg border-4">
+            <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
+          </div>
+          <button onClick={() => onNavbarOpen(false)}>
+            <LuX size={26} />
+          </button>
+        </div>
 
         <nav className="space-y-2">
           {navItems.map((item) => {

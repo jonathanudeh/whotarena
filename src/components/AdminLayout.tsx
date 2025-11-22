@@ -8,14 +8,12 @@ function AdminLayout() {
   const [navbarOpen, setNavbarOpen] = useState(false)
 
   return (
-    <div className="bg-background text-main-text min-h-screen md:grid md:grid-cols-[20rem_1fr] md:grid-rows-[auto_1fr]">
+    <div className="bg-background text-main-text min-h-screen md:grid md:h-screen md:grid-cols-[20rem_1fr] md:grid-rows-[auto_1fr]">
       <AdminHeader onNavbarOpen={setNavbarOpen} />
       <AdminSidebar />
-      {navbarOpen && <AdminMobileNav navbarOpen={navbarOpen} onNavbarOpen={setNavbarOpen} />}
-      <main className="px-5 py-10">
-        <div className="flex max-w-480 flex-col gap-2 overflow-auto">
-          <Outlet />
-        </div>
+      {navbarOpen && <AdminMobileNav onNavbarOpen={setNavbarOpen} />}
+      <main className="no-scrollbar overflow-scroll px-5 py-10">
+        <Outlet />
       </main>
     </div>
   )

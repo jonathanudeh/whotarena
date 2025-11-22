@@ -8,7 +8,7 @@ function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyle = 'flex cursor-pointer items-center justify-center rounded-sm text-white  '
+  const baseStyle = 'flex cursor-pointer items-center justify-center gap-2 rounded-sm text-white  '
 
   let className
 
@@ -17,8 +17,8 @@ function Button({
   if (size === 'large') className = baseStyle + 'w-full p-4 text-lg font-bold '
 
   if (variation === 'primary') className += 'bg-btn-primary hover:btn-pri-hover'
-  if (variation === 'secondary') className += ''
-  if (variation === 'danger') className += ''
+  if (variation === 'secondary') className += 'border border-background'
+  if (variation === 'danger') className += 'bg-btn-danger'
   if (variation === 'logOut')
     className +=
       'bg-card-bg flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-red-500'

@@ -7,6 +7,7 @@ import {
   LuUsers,
   LuSettings
 } from 'react-icons/lu'
+import { useUserProfile } from '../features/user/useUserProfile'
 
 const navItems = [
   { label: 'Dashboard', to: '/admin', icon: LuLayoutDashboard, end: true },
@@ -17,10 +18,14 @@ const navItems = [
   { label: 'Settings', to: '/admin/settings', icon: LuSettings }
 ]
 function AdminSidebar() {
+  const { userProfile = {} } = useUserProfile()
+  const { avatar } = userProfile
+
   return (
     <aside className="bg-background border-r-border-s row-span-full hidden flex-col gap-10 border-r-[0.8px] p-6 md:flex">
-      <div>Admin sidebar</div>
-
+      <div className="border-avatar-border bg-avatar-bg h-14 w-14 overflow-hidden rounded-xl border-4">
+        <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
+      </div>
       <nav className="space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon

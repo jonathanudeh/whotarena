@@ -12,7 +12,6 @@ export function useLogIn() {
     onSuccess: (user) => {
       queryClient.setQueryData(['user'], user.user)
       navigate('/lobby', { replace: true })
-      console.log(user)
     },
     onError: (err) => {
       toast.error(err.message)

@@ -1,5 +1,11 @@
+import CreateDepositAccount from '../features/admin/wallet/CreateDepositAccount'
+
 function AdminSettings() {
-  return <div>AdminSettings</div>
+  return (
+    <div>
+      <CreateDepositAccount />
+    </div>
+  )
 }
 
 export default AdminSettings

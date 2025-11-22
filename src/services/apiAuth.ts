@@ -14,7 +14,7 @@ export async function signUp({ email, password, username }: SignUpCredentials) {
   const avatar = `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`
 
   // creating user profile if auth was successful
-  if (userId) await createUserProfile(userId, username, avatar)
+  if (userId) await createUserProfile(userId, username, avatar, email)
 
   return data
 }

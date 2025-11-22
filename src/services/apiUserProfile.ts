@@ -2,8 +2,13 @@ import type { updateUserAvatarProps, updateUserusernameProps } from '../types/se
 import { supabase } from './supabase'
 
 // used in the apiAuth while signing a user up
-export async function createUserProfile(userId: string, username: string, avatar: string) {
-  const obj = { userId, username, avatar }
+export async function createUserProfile(
+  userId: string,
+  username: string,
+  avatar: string,
+  email: string
+) {
+  const obj = { userId, username, avatar, email }
 
   const { error } = await supabase.from('profiles').insert(obj).select()
 

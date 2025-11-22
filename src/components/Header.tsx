@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { IoWallet, IoAdd } from 'react-icons/io5'
 import { LuMenu } from 'react-icons/lu'
 import { useUserProfile } from '../features/user/useUserProfile'
+import { useAvailableBalance } from '../features/user/wallet/useAvailableBalance'
+import { formatCurrency } from '../utils/helper'
+import SpinnerMini from './SpinnerMini'
 
 interface HeaderProps {
   onNavbarOpen: (value: boolean) => void
@@ -11,6 +14,7 @@ interface HeaderProps {
 function Header({ onNavbarOpen }: HeaderProps) {
   const { userProfile = {} } = useUserProfile()
   const { avatar } = userProfile
+  const { availableBalance, isLoadingBalance } = useAvailableBalance()
 
   return (
     <header className="bg-background sticky top-0 z-40 flex items-center justify-between border-b border-b-slate-500 p-4 backdrop-blur-sm">
@@ -26,7 +30,13 @@ function Header({ onNavbarOpen }: HeaderProps) {
         className="flex items-center gap-2 rounded-full border border-[#6F41E2]/20 bg-[#1D1533] px-6 py-3 shadow-lg"
       >
         <IoWallet className="h-5 w-5 text-white" />
-        <span className="text-lg font-bold text-white">₦ 670</span>
+        {isLoadingBalance ? (
+          <SpinnerMini />
+        ) : (
+          <span className="text-lg font-bold text-white">
+            {formatCurrency(availableBalance ?? 0)}
+          </span>
+        )}
         <motion.div
           whileTap={{ scale: 0.9 }}
           className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-700 text-white"

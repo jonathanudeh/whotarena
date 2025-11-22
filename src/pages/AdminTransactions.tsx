@@ -1,5 +1,7 @@
+import AcceptRejectDeposit from '../features/admin/transactions/AcceptRejectDeposit'
+
 function AdminTransactions() {
-  return <div>AdminTransactions</div>
+  return <AcceptRejectDeposit />
 }
 
 export default AdminTransactions

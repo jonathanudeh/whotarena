@@ -1,7 +1,16 @@
-function AdminFormRow({ label, error, children }) {
+import type { ReactElement } from 'react'
+
+interface AdminFormRowProps {
+  label?: string
+  error?: string
+  classname?: string
+  children: ReactElement<{ id?: string }> // we tell TS that children has optional id prop
+}
+
+function AdminFormRow({ label, error, classname = '', children }: AdminFormRowProps) {
   return (
-    <div>
-      {label && (
+    <div className={classname}>
+      {label && children.props.id && (
         <label className="text-slate-300" htmlFor={children.props.id}>
           {label}
         </label>
