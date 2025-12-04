@@ -3,7 +3,7 @@
 @theme {
   --color-background: #020618;
   --color-card-bg: #1d1533;
-  --color-border: #6f41e2;
+  --color-border: #6f41e233;
   --color-border-s: #314158;
   --color-main-text: #e2e8f0;
   --color-em-text: #00c950;
@@ -17,23 +17,6 @@
   --color-seondary: oklch(93.6% 0.032 17.717);
   --color-gold: oklch(76.9% 0.188 70.08);
   --color-white: oklch(97.1% 0.013 17.38);
-
-  --color-red: #ed172b;
-  --color-red-b: #b91b5d;
-  --color-blue: #130d25;
-  --color-blue-b: #2a253a;
-  --color-maganet: #590c0c;
-  --color-prize: #1bb96b;
-
-  --color-lobby-bg: '#7b1111';
-  --color-r: '#9b1b1b';
-  --color-r-2: '#c33a2f';
-  --color-r-3: '#400707';
-  --color-y-500: '#f59e0b';
-  --color-400: '#fbbf24';
-  --color-300: '#fde68a';
-  --color-o-500: '#f97316';
-  --color-400: '#fb923c';
 }
 
 @layer utilities {

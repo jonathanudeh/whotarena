@@ -8,33 +8,26 @@ export async function getAllUsers() {
   return data
 }
 
-// get balance + deposit for one user
+// get balance
 export async function getUserStats(userId: string) {
   const { data, error } = await supabase
     .from('walletTransactions')
     .select('type, amount, status')
     .eq('userId', userId)
+    .eq('isRealMoney', true)
+    .in('status', ['approved', 'completed'])
 
   if (error) throw new Error(error.message)
 
-  const completed = data.filter((t) => t.status === 'approved')
+  const balance = data.reduce((sum, row) => sum + Number(row.amount), 0)
 
-  const balance = completed.reduce((sum, t) => sum + t.amount, 0)
-
-  const totalDeposits = completed
-    .filter((t) => t.type === 'deposit')
-    .reduce((sum, t) => sum + t.amount, 0)
-
-  return { balance, totalDeposits }
+  return balance
 }
 
 // ban user
 export async function banUser(userId: string) {
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 30)
-
   const { error } = await supabase.auth.admin.updateUserById(userId, {
-    ban_duration: tomorrow.toISOString()
+    ban_duration: '7d'
   })
 
   if (error) throw new Error(error.message)
@@ -44,7 +37,7 @@ export async function banUser(userId: string) {
 // unban user
 export async function unbanUser(userId: string) {
   const { error } = await supabase.auth.admin.updateUserById(userId, {
-    ban_duration: null
+    ban_duration: 'none'
   })
 
   if (error) throw new Error(error.message)

@@ -2,14 +2,46 @@ import { motion } from 'framer-motion'
 
 import { LuClock, LuDoorOpen, LuUsers } from 'react-icons/lu'
 import { formatCurrency } from '../../utils/helper'
+import toast from 'react-hot-toast'
+import { useUser } from '../auth/useUser'
+import { useJoinOrCreateMatch } from './useJoinOrCreateMatch'
+import SpinnerMini from '../../components/SpinnerMini'
 
-interface RoomCardProps {
-  room: {}
+type RoomCardProps = {
+  room: {
+    id: number
+    name: string
+    entryFee: number
+    prize: number
+    maxPlayers: number
+  }
   delay: number
 }
 
 function RoomCard({ room, delay }: RoomCardProps) {
-  const { name, entryFee, prize, maxPlayers } = room
+  const { id: roomId, name, entryFee, prize, maxPlayers } = room
+  const { user, isAuthenticated } = useUser()
+  const { joinOrCreateMatch, isJoining } = useJoinOrCreateMatch()
+  const userId = user?.id
+
+  async function handleJoinRoom() {
+    try {
+      if (!userId || !isAuthenticated) return
+      console.log('handleJoinRoom function running')
+      joinOrCreateMatch({ roomId, userId })
+    } catch (err: unknown) {
+      // Type narrowing
+      if (err instanceof Error) {
+        toast.error(err.message)
+        console.log(err)
+      } else {
+        toast.error('An unknown error occurred')
+        console.log(err)
+      }
+    }
+  }
+
+  if (isJoining) return <SpinnerMini />
 
   return (
     <motion.li
@@ -53,7 +85,11 @@ function RoomCard({ room, delay }: RoomCardProps) {
         </div>
 
         {/*  */}
-        <button className="mt-4 flex w-full items-center justify-center rounded-xl bg-[#00D57E] py-2 font-semibold text-[#0B1F16] hover:bg-[#1DF59C]">
+        <button
+          className="mt-4 flex w-full items-center justify-center rounded-xl bg-[#00D57E] py-2 font-semibold text-[#0B1F16] hover:bg-[#1DF59C]"
+          onClick={handleJoinRoom}
+          disabled={isJoining}
+        >
           <LuDoorOpen size={20} /> Join Room
         </button>
       </div>

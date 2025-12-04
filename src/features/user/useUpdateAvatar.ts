@@ -7,8 +7,7 @@ export function useUpdateAvatar() {
 
   const { mutate: updateAvatar, isPending: isUpdatingAvatar } = useMutation({
     mutationFn: updateCurrentUserAvatar,
-    onSuccess: (data) => {
-      console.log(data)
+    onSuccess: () => {
       toast.success('Your avatar has been updated.')
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
     },

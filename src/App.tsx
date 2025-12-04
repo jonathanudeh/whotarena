@@ -21,6 +21,9 @@ import { Toaster } from 'react-hot-toast'
 import UserLayout from './components/UserLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ProtectedAdminRoute from './components/ProtectedAdminRoute'
+import GameBoard from './features/rooms/GameBoard'
+import GameLayout from './components/GameLayout'
+import ProtectedGameRoute from './components/protectedGameRoute'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +49,15 @@ const router = createBrowserRouter([
       { path: '/settings', element: <Settings /> },
       { path: '/tournament', element: <Tournament /> }
     ]
+  },
+  {
+    path: '/game/:matchId',
+    element: (
+      <ProtectedGameRoute>
+        <GameLayout />
+      </ProtectedGameRoute>
+    ),
+    children: [{ index: true, element: <GameBoard /> }]
   },
   {
     path: '/admin',
