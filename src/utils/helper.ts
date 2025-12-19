@@ -1,3 +1,5 @@
+import type { Card, GameState } from '../types/game'
+
 // currency formatter
 export function formatCurrency(amount: number, currency: string = 'NGN') {
   return new Intl.NumberFormat('en-NG', {
@@ -60,4 +62,22 @@ export function formatTimeRemaining(endAt: string | Date) {
   const mm = String(minutes).padStart(2, '0')
 
   return `${hh}h:${mm}m`
+}
+
+export function calculateHandTotal(hand: Card[]): number {
+  return hand.reduce((sum, c) => sum + c.num, 0)
+}
+
+export function getWinnerFromTotals(gameState: GameState): string {
+  let lowest = Infinity
+  let winnerId = ''
+
+  for (const playerId of gameState.playerOrder) {
+    const total = calculateHandTotal(gameState.hands[playerId])
+    if (total < lowest) {
+      lowest = total
+      winnerId = playerId
+    }
+  }
+  return winnerId
 }

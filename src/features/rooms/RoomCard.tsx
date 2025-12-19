@@ -4,8 +4,10 @@ import { LuClock, LuDoorOpen, LuUsers } from 'react-icons/lu'
 import { formatCurrency } from '../../utils/helper'
 import toast from 'react-hot-toast'
 import { useUser } from '../auth/useUser'
-import { useJoinOrCreateMatch } from './useJoinOrCreateMatch'
 import SpinnerMini from '../../components/SpinnerMini'
+import { useAvailableBalance } from '../user/wallet/useAvailableBalance'
+import { useNavigate } from 'react-router-dom'
+import { useJoinWithEntryFee } from './useJoinWithEntryFee'
 
 type RoomCardProps = {
   room: {
@@ -19,18 +21,39 @@ type RoomCardProps = {
 }
 
 function RoomCard({ room, delay }: RoomCardProps) {
+  const navigate = useNavigate()
   const { id: roomId, name, entryFee, prize, maxPlayers } = room
   const { user, isAuthenticated } = useUser()
-  const { joinOrCreateMatch, isJoining } = useJoinOrCreateMatch()
+  const { availableBalance, isLoadingBalance } = useAvailableBalance()
+  const { joinWithFee, retryJoin, isJoining, error, canRetryJoin } = useJoinWithEntryFee()
   const userId = user?.id
 
   async function handleJoinRoom() {
     try {
       if (!userId || !isAuthenticated) return
-      console.log('handleJoinRoom function running')
-      joinOrCreateMatch({ roomId, userId })
+
+      // Check if balance is still loading
+      if (isLoadingBalance) {
+        toast.loading('Checking wallet balance... please wait.')
+        return
+      }
+
+      // Ensure balance is available, default to 0 if undefined
+      const balance = availableBalance ?? 0
+
+      if (balance < entryFee) {
+        const shortfall = entryFee - balance
+        toast.error(`Insufficient balance. You need ${formatCurrency(shortfall)} more.`)
+        setTimeout(() => {
+          navigate('/wallet')
+        }, 1500)
+
+        return
+      }
+
+      // Proceed with joining: deduct fee → join → handle failure
+      await joinWithFee({ roomId, userId, entryFee })
     } catch (err: unknown) {
-      // Type narrowing
       if (err instanceof Error) {
         toast.error(err.message)
         console.log(err)
@@ -39,6 +62,11 @@ function RoomCard({ room, delay }: RoomCardProps) {
         console.log(err)
       }
     }
+  }
+
+  function handleRetryJoin() {
+    if (!userId) return
+    retryJoin(roomId, userId, entryFee)
   }
 
   if (isJoining) return <SpinnerMini />
@@ -85,13 +113,26 @@ function RoomCard({ room, delay }: RoomCardProps) {
         </div>
 
         {/*  */}
-        <button
-          className="mt-4 flex w-full items-center justify-center rounded-xl bg-[#00D57E] py-2 font-semibold text-[#0B1F16] hover:bg-[#1DF59C]"
-          onClick={handleJoinRoom}
-          disabled={isJoining}
-        >
-          <LuDoorOpen size={20} /> Join Room
-        </button>
+        {canRetryJoin ? (
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              className="flex w-full items-center justify-center rounded-xl bg-[#FF6B6B] py-2 font-semibold text-white hover:bg-[#ff5252]"
+              onClick={handleRetryJoin}
+              disabled={isJoining}
+            >
+              <LuDoorOpen size={20} /> Retry Join
+            </button>
+            <p className="text-center text-xs text-red-400">{error}</p>
+          </div>
+        ) : (
+          <button
+            className={`mt-4 flex w-full items-center justify-center rounded-xl bg-[#00D57E] py-2 font-semibold text-[#0B1F16] hover:bg-[#1DF59C] ${isJoining ? 'bg-card-bg cursor-not-allowed opacity-70' : ''}`}
+            onClick={handleJoinRoom}
+            disabled={isJoining}
+          >
+            <LuDoorOpen size={20} /> Join Room
+          </button>
+        )}
       </div>
     </motion.li>
   )

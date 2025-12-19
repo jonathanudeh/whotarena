@@ -91,9 +91,9 @@ function App() {
       <RouterProvider router={router} />
       <ReactQueryDevtools initialIsOpen={false} />
       <Toaster
-        position="top-center"
-        gutter={12}
-        containerStyle={{ margin: '8px' }}
+        position="top-right"
+        reverseOrder={false}
+        gutter={8}
         toastOptions={{
           success: {
             duration: 3000
@@ -102,10 +102,10 @@ function App() {
             duration: 5000
           },
           style: {
-            fontSize: '16px',
-            maxWidth: '500px',
-            padding: '16px 24px'
-            // backgroundColor: "",
+            background: '#fff',
+            color: '#000',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }
         }}
       />

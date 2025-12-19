@@ -42,8 +42,6 @@ export async function getAllPendingDeposit() {
     email: profiles.find((p) => p.userId === d.userId)?.email ?? null
   }))
 
-  console.log(result)
-
   return result
 }
 
@@ -115,5 +113,115 @@ export async function transactionsByUser(userId: string) {
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
+  return data
+}
+
+/**
+ * Creates a "gameEntry" transaction when user joins a room
+ * Deducts the entry fee from their available balance
+ * Returns the transaction record with ID (needed for potential refund)
+ */
+export async function createGameEntryTransaction({
+  userId,
+  roomId,
+  matchId,
+  entryFee
+}: {
+  userId: string
+  roomId: number
+  matchId?: number
+  entryFee: number
+}) {
+  const { data, error } = await supabase
+    .from('walletTransactions')
+    .insert([
+      {
+        userId,
+        type: 'gameEntry',
+        amount: -Math.abs(entryFee), // negative to deduct
+        status: 'completed',
+        isRealMoney: true,
+        meta: {
+          roomId,
+          matchId: matchId || null
+        }
+      }
+    ])
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+/**
+ * Creates a "gameRefund" transaction to refund entry fee
+ * Called when game join fails after fee was already deducted
+ */
+export async function createGameRefundTransaction({
+  userId,
+  originalTransactionId,
+  entryFee
+}: {
+  userId: string
+  originalTransactionId: number
+  entryFee: number
+}) {
+  const { data, error } = await supabase
+    .from('walletTransactions')
+    .insert([
+      {
+        userId,
+        type: 'gameRefund',
+        amount: Math.abs(entryFee), // positive to refund
+        status: 'completed',
+        isRealMoney: true,
+        meta: {
+          originalTransactionId
+        }
+      }
+    ])
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function createGamePrizeTransaction({
+  winnerId,
+  matchId,
+  prizeAmount
+}: {
+  winnerId: string
+  matchId: number
+  prizeAmount: number
+}) {
+  console.log('Creating game prize transaction', { winnerId, matchId, prizeAmount })
+
+  const { data, error } = await supabase
+    .from('walletTransactions')
+    .insert([
+      {
+        userId: winnerId,
+        type: 'gamePrize',
+        amount: Math.abs(prizeAmount),
+        status: 'completed',
+        isRealMoney: true,
+        meta: {
+          matchId
+        }
+      }
+    ])
+    .select()
+    .single()
+
+  if (error) {
+    console.log({ error })
+    throw new Error(error.message)
+  }
+
+  console.log('Game prize transaction created', data)
+  console.log(data)
   return data
 }

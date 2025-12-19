@@ -12,6 +12,7 @@ export default function Lobby() {
           <IoFlash className="h-6 w-6" />
         </div>
       </div>
+
       <TournamentList />
       <RoomList />
     </>

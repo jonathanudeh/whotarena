@@ -15,7 +15,6 @@ export function useJoinOrCreateMatch() {
     mutationFn: (vars) => joinOrCreateMatchAPi(vars),
 
     onSuccess: (matchId) => {
-      // const { roomId } = variables
       navigate(`/game/${matchId}`, { replace: true })
     },
 

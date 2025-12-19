@@ -16,6 +16,7 @@
     "@tanstack/react-query-devtools": "^5.90.2",
     "framer-motion": "^12.23.24",
     "react": "^19.1.1",
+    "react-confetti": "^6.4.0",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.66.0",
     "react-hot-toast": "^2.6.0",

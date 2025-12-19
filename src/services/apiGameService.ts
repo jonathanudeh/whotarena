@@ -1,5 +1,7 @@
 // src/services/gameService.ts
+import toast from 'react-hot-toast'
 import type { ShapeType } from '../features/rooms/ChooseShapeModal'
+import { getWinnerFromTotals } from '../utils/helper'
 import { supabase } from './supabase'
 
 /**
@@ -82,10 +84,18 @@ export async function startGame({
   matchId: number
   cardCountPerPlayer?: number
 }): Promise<{ success: boolean; match?: any; gameState?: GameState }> {
-  // 1. Fetch match + players
+  // 1. Fetch match + room
   const { data: match, error: matchErr } = await supabase
     .from('matches')
-    .select('id, roomId, maxPlayers, status')
+    .select(
+      `
+      *,
+     room: rooms (
+        entryFee,
+        prize
+      )
+    `
+    )
     .eq('id', matchId)
     .single()
 
@@ -125,20 +135,24 @@ export async function startGame({
     discardTop = deck[deckCursor++]
   }
 
-  // 7. Remaining deck (market): top is at index 0 (we will use slice)
-  const remainingDeck = deck.slice(deckCursor)
+  // 7. Remaining deck (market): slice and REVERSE so top is at the end -> use pop()
+  const remainingDeck = deck.slice(deckCursor).reverse()
 
-  // 8. Choose first player as the one who dealt last card? (common is first player in players array)
-  // We'll make the first player in matchPlayers the starter (you can change later).
-  const firstPlayerUserId = matchPlayers[0].userId
+  // 8. Choose first player as matchPlayers[0]
+  const playerOrder = matchPlayers.map((p) => p.userId)
+  const firstPlayerUserId = playerOrder[0]
 
-  // 9. Build gameState
-  const gameState: GameState = {
-    deck: remainingDeck,
+  // 9. Build gameState (include playerOrder and turnIndex)
+  //useg gamestate type
+  const gameState: any = {
+    deck: remainingDeck, // top is at end -> .pop() draws top
     discardTop,
     hands,
     turn: firstPlayerUserId,
+    playerOrder,
+    turnIndex: 0,
     status: 'playing',
+    turnEndTime: new Date(Date.now() + 20 * 1000).toISOString(),
     createdAt: new Date().toISOString()
   }
 
@@ -164,7 +178,7 @@ export async function playMove({
   userId: string
   card: Card
 }) {
-  // 1. Load gameState
+  // Load state
   const { data: match, error } = await supabase
     .from('matches')
     .select('gameState')
@@ -176,88 +190,147 @@ export async function playMove({
   const gs = match.gameState
   if (!gs) throw new Error('Game not started')
 
+  //  EARLY DECK EMPTY WIN CHECK
+  if (gs.deck.length === 0 && !gs.finished) {
+    const winner = getWinnerFromTotals(gs)
+    gs.winner = winner
+    gs.finished = true
+    gs.status = 'finished'
+
+    await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
+    return true
+  }
+
   if (gs.turn !== userId) throw new Error('Not your turn')
 
   const top = gs.discardTop
 
+  if (gs.turnEndTime && Date.now() > new Date(gs.turnEndTime).getTime()) {
+    // turn already expired — auto-resolve before continuing
+    await pickFromMarket({ matchId, userId: gs.turn })
+    return
+  }
+
   // LEGALITY CHECK
   const isLegal =
-    top.num === 20 || card.num === 20 || card.num === top.num || card.shape === top.shape
+    top?.num === 20 || card.num === 20 || card.num === top?.num || card.shape === top?.shape
 
   if (!isLegal) throw new Error('Card does not match')
 
-  // Remove from hand
+  // PICK TWO BLOCKING
+  if (gs.stackedTwo > 0 && card.num !== 2) {
+    throw new Error('You must pick your stacked 2s')
+  }
+
+  // Remove played card
   gs.hands[userId] = gs.hands[userId].filter((c) => c.id !== card.id)
 
-  // Place in discard
+  // Put on discard
   gs.discardTop = card
 
-  const players = Object.keys(gs.hands)
-  const currentIndex = players.indexOf(userId)
+  // -----------------------------
+  // USE EXISTING MATCH TURN ORDER (fallback to keys if missing)
+  // -----------------------------
+  const players: string[] =
+    Array.isArray(gs.playerOrder) && gs.playerOrder.length > 0
+      ? gs.playerOrder
+      : Object.keys(gs.hands)
 
-  // ===========================
-  // SPECIAL CARD HANDLING
-  // ===========================
+  // Ensure turnIndex exists and points to current user
+  if (typeof gs.turnIndex !== 'number') {
+    gs.turnIndex = players.indexOf(gs.turn)
+    if (gs.turnIndex < 0) gs.turnIndex = 0
+  }
+  const currentIndex = gs.turnIndex
 
-  // If WHOT requirement is active
+  // -----------------------------
+  // WHOT requirement handling
+  // -----------------------------
   if (gs.requiredShape) {
-    if (card.shape !== gs.requiredShape && card.num !== 20) {
+    if (card.num !== 20 && card.shape !== gs.requiredShape) {
       throw new Error(`You must play a ${gs.requiredShape} card or WHOT`)
     }
 
-    // If requirement satisfied, clear it
-    if (card.shape === gs.requiredShape) {
+    // reset only when a non-WHOT satisfies it (or allow clearing on WHOT since awaitingShapeChoice will set new)
+    if (card.num !== 20 && card.shape === gs.requiredShape) {
       gs.requiredShape = null
     }
   }
 
-  // (1) HOLD ON – Player plays again
+  // ==============================
+  // SPECIAL CARDS
+  // ==============================
+
   if (card.num === 1) {
-    gs.turn = userId // Same player continues
-  }
-
-  // (2) PICK TWO stacking
-  else if (card.num === 2) {
-    const nextPlayer = players[(currentIndex + 1) % players.length]
+    // HOLD ON — same player continues
+    gs.turnIndex = currentIndex
+  } else if (card.num === 2) {
+    // PICK TWO — stack and next player handles it
     gs.stackedTwo = (gs.stackedTwo ?? 0) + 2
-    gs.turn = nextPlayer
-  }
-
-  // (8) SKIP next player
-  else if (card.num === 8) {
-    const skipIndex = (currentIndex + 1) % players.length
-    gs.skipped = players[skipIndex]
-
-    gs.turn = players[(currentIndex + 2) % players.length]
-  }
-
-  // (14) GENERAL MARKET
-  else if (card.num === 14) {
+    gs.turnIndex = (currentIndex + 1) % players.length
+  } else if (card.num === 8) {
+    // SKIP — skip next player
+    gs.skipped = players[(currentIndex + 1) % players.length]
+    gs.turnIndex = (currentIndex + 2) % players.length
+  } else if (card.num === 14) {
+    // GENERAL MARKET — every other player draws 1
     const others = players.filter((pid) => pid !== userId)
-
     for (const pid of others) {
-      const drawn = gs.deck.pop()
-      if (drawn) gs.hands[pid].push(drawn)
+      if (gs.deck.length > 0) {
+        const drawn = gs.deck.pop()
+        if (drawn) gs.hands[pid].push(drawn)
+      }
     }
 
-    // Player keeps turn
-    gs.turn = userId
-
-    // Make sure WHOT mode is cancelled
     gs.requiredShape = null
-  }
-  // (20) WHOT – must choose shape OR counter WHOT
-  else if (card.num === 20) {
+    gs.turnIndex = currentIndex // player keeps turn
+  } else if (card.num === 20) {
+    // WHOT — player must pick shape or another WHOT can counter
     gs.awaitingShapeChoice = userId
-    gs.turn = userId // same player chooses shape
+    gs.awaitingShapeEndTime = new Date(Date.now() + 20 * 1000).toISOString()
+    gs.turnIndex = currentIndex
+  } else {
+    // NORMAL CARD
+    gs.turnIndex = (currentIndex + 1) % players.length
   }
 
-  // NORMAL CARD
-  else {
-    gs.turn = players[(currentIndex + 1) % players.length]
+  // ===========================
+  // WIN LOGIC
+  // ===========================
+
+  //  Player emptied hand
+  if (gs.hands[userId].length === 0) {
+    gs.winner = userId
+    gs.finished = true
+    gs.status = 'finished'
   }
 
-  // Save change
+  gs.turn = players[gs.turnIndex]
+
+  // Set turn end time if not finished and not awaiting shape
+  if (!gs.finished && !gs.awaitingShapeChoice) {
+    gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
+  }
+
+  // Build a lastAction object so clients can show toasts
+  gs.lastAction = {
+    id: `${Date.now()}-${userId}`, // unique id
+    type: 'play', // action type
+    actor: userId,
+    cardNum: card.num,
+    cardShape: card.shape ?? null,
+    stackedTwo: gs.stackedTwo ?? 0,
+    // compute target for cases where a specific player is affected:
+    target:
+      card.num === 2
+        ? players[(currentIndex + 1) % players.length]
+        : card.num === 8
+          ? players[(currentIndex + 1) % players.length]
+          : null,
+    createdAt: new Date().toISOString()
+  }
+
+  // Save state
   const { error: err } = await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
 
   if (err) throw err
@@ -277,22 +350,60 @@ export async function pickFromMarket({ matchId, userId }: { matchId: number; use
   const state = match.gameState
   if (!state) throw new Error('Game not started')
 
+  // check if stacktwo is active and resolve it first
+  if (state.stackedTwo && state.stackedTwo > 0) {
+    // resolvestackedtwo function will handle drawing cards and advancing turn
+    await resolveStackedTwo({ matchId, userId })
+    return
+  }
+
   if (state.turn !== userId) {
     throw new Error('Not your turn')
   }
 
-  if (state.deck.length === 0) {
+  if (!state.deck || state.deck.length === 0) {
     throw new Error('Market empty')
   }
 
+  // 👉 Draw the card
   const newCard = state.deck.pop()
+  if (newCard) state.hands[userId].push(newCard)
 
-  state.hands[userId].push(newCard)
+  // RIGHT HERE — check if deck is empty AFTER drawing
+  if (state.deck.length === 0 && !state.finished) {
+    const winner = getWinnerFromTotals(state)
+    state.winner = winner
+    state.finished = true
+    state.status = 'finished'
 
-  // Rotate turn
-  const playerIds = Object.keys(state.hands)
-  const i = playerIds.indexOf(userId)
-  state.turn = playerIds[(i + 1) % playerIds.length]
+    await supabase
+      .from('matches')
+      .update({ gameState: state, status: 'ended', endedAt: new Date().toISOString() })
+      .eq('id', matchId)
+
+    return true
+  }
+
+  // Advance turn based on playerOrder
+  const players: string[] =
+    Array.isArray(state.playerOrder) && state.playerOrder.length > 0
+      ? state.playerOrder
+      : Object.keys(state.hands)
+
+  // Ensure turnIndex exists
+  if (typeof state.turnIndex !== 'number') {
+    state.turnIndex = players.indexOf(state.turn)
+    if (state.turnIndex < 0) state.turnIndex = 0
+  }
+
+  state.turnIndex = (state.turnIndex + 1) % players.length
+  state.turn = players[state.turnIndex]
+  state.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
+
+  //   // Clear the previous action so stale toasts don't re-trigger
+  //   if (state.lastAction && state.lastAction.type !== 'chooseShape') {
+  //     state.lastAction = null
+  //   }
 
   await supabase.from('matches').update({ gameState: state }).eq('id', matchId)
 }
@@ -320,13 +431,35 @@ export async function chooseWhotShape({
     throw new Error('Not awaiting your choice')
   }
 
+  // set required shape
   gs.requiredShape = shape
   gs.awaitingShapeChoice = null
 
-  // Move turn to next player
-  const players = Object.keys(gs.hands)
-  const i = players.indexOf(userId)
-  gs.turn = players[(i + 1) % players.length]
+  // Advance turn to next player using playerOrder
+  const players: string[] =
+    Array.isArray(gs.playerOrder) && gs.playerOrder.length > 0
+      ? gs.playerOrder
+      : Object.keys(gs.hands)
+
+  if (typeof gs.turnIndex !== 'number') {
+    gs.turnIndex = players.indexOf(userId)
+    if (gs.turnIndex < 0) gs.turnIndex = 0
+  }
+
+  gs.turnIndex = (gs.turnIndex + 1) % players.length
+  gs.turn = players[gs.turnIndex]
+
+  // Set turn end time
+  gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
+
+  // after setting gs.requiredShape = shape and clearing gs.awaitingShapeChoice
+  gs.lastAction = {
+    id: `${Date.now()}-${userId}`,
+    type: 'chooseShape',
+    actor: userId,
+    shape,
+    createdAt: new Date().toISOString()
+  }
 
   await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
 }
@@ -351,10 +484,104 @@ export async function resolveStackedTwo({ matchId, userId }: { matchId: number; 
 
   gs.stackedTwo = 0
 
+  // Advance turn to next player in order
+  const players: string[] =
+    Array.isArray(gs.playerOrder) && gs.playerOrder.length > 0
+      ? gs.playerOrder
+      : Object.keys(gs.hands)
+
+  if (typeof gs.turnIndex !== 'number') {
+    gs.turnIndex = players.indexOf(userId)
+    if (gs.turnIndex < 0) gs.turnIndex = 0
+  }
+
+  gs.turnIndex = (gs.turnIndex + 1) % players.length
+  gs.turn = players[gs.turnIndex]
+  gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
+
+  // Clear the previous action so stale toasts don't re-trigger
+  if (gs.lastAction && gs.lastAction.type !== 'chooseShape') {
+    // Keep chooseShape lastAction visible until a regular play consumes it
+    gs.lastAction = null
+  }
+
+  await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
+}
+
+export async function updateMatchResults(
+  winnerId: string,
+  playerIds: string[],
+  matchId: number
+): Promise<{ ok: true }> {
+  // Validate and sanitize
+  const validatedWinner = typeof winnerId === 'string' && winnerId.trim() !== '' ? winnerId : null
+  const validatedPlayers = Array.isArray(playerIds)
+    ? playerIds.filter((id) => typeof id === 'string' && id.trim() !== '')
+    : []
+
+  if (!validatedWinner) {
+    console.warn('Skipping increment_profile_stats: invalid winnerId', winnerId)
+  } else {
+    console.log('Calling increment_profile_stats', {
+      winner_id: validatedWinner,
+      player_ids: validatedPlayers
+    })
+
+    const { data, error } = await supabase.rpc('increment_profile_stats', {
+      player_ids: validatedPlayers,
+      winner_id: validatedWinner
+    })
+
+    if (error) {
+      console.error('RPC error increment_profile_stats', error)
+      throw error
+    }
+
+    console.log('increment_profile_stats success', data)
+
+    const { error: updateErr } = await supabase
+      .from('matches')
+      .update({ status: 'ended', endedAt: new Date().toISOString() })
+      .eq('id', matchId)
+      .select()
+      .single()
+
+    if (updateErr) {
+      console.error('Error updating match', updateErr)
+      throw new Error(updateErr.message)
+    }
+
+    console.log('Match updated successfully')
+  }
+
+  return { ok: true }
+}
+
+export async function advanceTurn({ matchId, userId }: { matchId: number; userId: string }) {
+  const { data: match, error } = await supabase
+    .from('matches')
+    .select('gameState')
+    .eq('id', matchId)
+    .single()
+
+  if (error || !match) throw new Error('Cannot load match')
+
+  const gs = match.gameState
+  if (!gs) throw new Error('Game not started')
+
+  if (gs.turn !== userId) throw new Error('Not your turn')
+
   // Advance turn
-  const players = Object.keys(gs.hands)
-  const nextIndex = (players.indexOf(userId) + 1) % players.length
-  gs.turn = players[nextIndex]
+  const players = gs.playerOrder
+  const currentIndex = gs.turnIndex
+  gs.turnIndex = (currentIndex + 1) % players.length
+  gs.turn = players[gs.turnIndex]
+
+  // Set turn end time
+  gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
+
+  // Clear any lastAction
+  gs.lastAction = null
 
   await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
 }

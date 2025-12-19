@@ -98,10 +98,29 @@ export async function joinOrCreateMatch({ roomId, userId }) {
 
 // for the gameboard
 export async function getMatch(matchId: number) {
-  const { data, error } = await supabase.from('matches').select('*').eq('id', matchId).single()
+  const { data, error } = await supabase
+    .from('matches')
+    .select(
+      `
+      *,
+      room: rooms (
+        entryFee,
+        prize
+      )
+    `
+    )
+    .eq('id', matchId)
+    .single()
 
   if (error) throw new Error(error.message)
-  return data
+
+  console.log('getMatch result for', matchId, ':', { data, prize: data?.room?.prize })
+
+  return {
+    ...data,
+    entryFee: data?.room?.entryFee,
+    prize: data?.room?.prize
+  }
 }
 
 // for gameboard
