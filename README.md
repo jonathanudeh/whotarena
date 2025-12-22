@@ -69,3 +69,5 @@ Players can join rooms, stake entry fees, and face off in 2–4 player games —
 ---
 
 1. if user is leaving a room without players in it the status should be finished so another player dont join that room while the user is out
+
+2. virtual p must pick a shape from the shapes they have not a random shape they may not have

@@ -25,12 +25,11 @@ export default function WinnerScreen({
     awardGamePrize({ winnerId, matchId, prizeAmount })
   )
   const { awardGamePrize, isAwardingGamePrize } = useGamePrize()
-
   const isLoading = isUpdatingMatchResults || isAwardingGamePrize
-
   const navigate = useNavigate()
-
   const hasFinalized = useRef(false)
+
+  const isHumanWinner = /^[0-9a-f-]{36}$/i.test(winnerId)
 
   useEffect(() => {
     if (hasFinalized.current || !winnerId || !matchId) {
@@ -46,8 +45,12 @@ export default function WinnerScreen({
     hasFinalized.current = true
     console.log('WinnerScreen finalizing:', { winnerId, matchId, prizeAmount, playerIds })
 
+    if (!isHumanWinner) {
+      return
+    }
+
     updateMatchResults({ winnerId, players: playerIds, matchId })
-  }, [winnerId, matchId, prizeAmount, playerIds, updateMatchResults, awardGamePrize])
+  }, [winnerId, matchId, prizeAmount, playerIds, isHumanWinner, updateMatchResults, awardGamePrize])
 
   // Auto-return to lobby
   useEffect(() => {

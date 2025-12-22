@@ -1,8 +1,34 @@
-// src/services/gameService.ts
-import toast from 'react-hot-toast'
 import type { ShapeType } from '../features/rooms/ChooseShapeModal'
 import { getWinnerFromTotals } from '../utils/helper'
 import { supabase } from './supabase'
+
+// DEBUG HELPER
+function logState(gs: any, label = '') {
+  console.log(`=== ${label} ===`)
+  console.log('turn:', gs.turn)
+  console.log('turnIndex:', gs.turnIndex)
+  console.log('playerOrder:', gs.playerOrder)
+  console.log('playerMeta:', gs.playerMeta)
+  console.log(
+    'hands:',
+    Object.fromEntries(
+      Object.entries(gs.hands).map(([k, v]) => [k, v.map((c: any) => `${c.shape}${c.num}`)])
+    )
+  )
+  console.log('deck top:', gs.deck[gs.deck.length - 1])
+  console.log('discardTop:', gs.discardTop)
+  console.log('stackedTwo:', gs.stackedTwo)
+  console.log('awaitingShapeChoice:', gs.awaitingShapeChoice)
+  console.log('==================')
+}
+
+// SAFE playerId resolver
+// function resolvePlayerId(gs: any, userId: string): string {
+//   if (gs.playerMeta[userId]) return userId
+//   const pid = Object.keys(gs.playerMeta).find((k) => gs.playerMeta[k].userId === userId)
+//   if (!pid) throw new Error(`Invalid playerId: ${userId}`)
+//   return pid
+// }
 
 /**
  * Types
@@ -83,7 +109,7 @@ export async function startGame({
 }: {
   matchId: number
   cardCountPerPlayer?: number
-}): Promise<{ success: boolean; match?: any; gameState?: GameState }> {
+}) {
   // 1. Fetch match + room
   const { data: match, error: matchErr } = await supabase
     .from('matches')
@@ -99,74 +125,110 @@ export async function startGame({
     .eq('id', matchId)
     .single()
 
-  if (matchErr) throw matchErr
-  if (!match) throw new Error('match not found')
+  if (matchErr || !match) throw new Error('Match not found')
 
-  // 2. Get players (ordered by created_at for deterministic dealing)
+  // 2. Load match players
   const { data: matchPlayers, error: playersErr } = await supabase
     .from('matchPlayers')
     .select('id, userId, created_at')
     .eq('matchId', matchId)
     .order('created_at', { ascending: true })
 
-  if (playersErr) throw playersErr
-  if (!matchPlayers || matchPlayers.length === 0) throw new Error('no players in match')
+  if (playersErr || !matchPlayers?.length) {
+    throw new Error('No players in match')
+  }
+
+  console.log(`starting game func`)
 
   // 3. Build & shuffle deck
   const deck = shuffle(buildWhotDeck())
 
-  // 4. Prepare hands
+  // 4. Runtime game structures (IMPORTANT)
   const hands: Record<string, Card[]> = {}
-  for (const p of matchPlayers) hands[p.userId] = []
+  const playerOrder: string[] = []
+  const playerMeta: Record<string, { userId: string | null; type: 'human' | 'ai' }> = {}
 
-  // 5. Deal round-robin cardCountPerPlayer cards
+  // 5. Create runtime playerIds FIRST
+  for (const p of matchPlayers) {
+    const playerId = String(p.userId ?? p.id)
+
+    hands[playerId] = []
+    playerOrder.push(playerId)
+
+    playerMeta[playerId] = {
+      userId: String(p.userId ?? p.id),
+      type: p.userId ? 'human' : 'ai'
+    }
+
+    console.log({ playerMeta })
+  }
+
+  // DEBUG
+  console.log('START GAME players:', playerOrder)
+
+  // 6. Deal cards (round-robin, runtime IDs only)
   let deckCursor = 0
+
   for (let round = 0; round < cardCountPerPlayer; round++) {
-    for (const p of matchPlayers) {
+    for (const playerId of playerOrder) {
       if (deckCursor >= deck.length) break
-      const card = deck[deckCursor++]
-      hands[p.userId].push(card)
+      hands[playerId].push(deck[deckCursor++])
     }
   }
 
-  // 6. Set discardTop by drawing next card from deck
-  let discardTop: Card | null = null
-  if (deckCursor < deck.length) {
-    discardTop = deck[deckCursor++]
-  }
+  //  DEBUG
+  console.log(
+    'START GAME hands:',
+    Object.fromEntries(Object.entries(hands).map(([k, v]) => [k, v.length]))
+  )
 
-  // 7. Remaining deck (market): slice and REVERSE so top is at the end -> use pop()
+  // 7. Discard top
+  const discardTop = deckCursor < deck.length ? deck[deckCursor++] : null
+
+  // 8. Remaining deck (market)
   const remainingDeck = deck.slice(deckCursor).reverse()
 
-  // 8. Choose first player as matchPlayers[0]
-  const playerOrder = matchPlayers.map((p) => p.userId)
-  const firstPlayerUserId = playerOrder[0]
+  // 9. First turn
+  const firstPlayerId = playerOrder[0]
 
-  // 9. Build gameState (include playerOrder and turnIndex)
-  //useg gamestate type
-  const gameState: any = {
-    deck: remainingDeck, // top is at end -> .pop() draws top
+  // 10. Build gameState
+  const gameState = {
+    deck: remainingDeck,
     discardTop,
     hands,
-    turn: firstPlayerUserId,
     playerOrder,
+    playerMeta,
+    turn: firstPlayerId,
     turnIndex: 0,
+    stackedTwo: 0,
+    requiredShape: null,
+    awaitingShapeChoice: null,
+    awaitingShapeEndTime: null,
+    skipped: null,
+    lastAction: null,
     status: 'playing',
-    turnEndTime: new Date(Date.now() + 20 * 1000).toISOString(),
+    finished: false,
+    winner: null,
+    turnEndTime: new Date(Date.now() + 20_000).toISOString(),
     createdAt: new Date().toISOString()
   }
 
-  // 10. Update matches row with gameState, status, startedAt
-  const { data: updated, error: updateErr } = await supabase
+  // 🔍 FINAL DEBUG
+  console.log('GAMESTATE CREATED', gameState)
+
+  // 11. Save
+  const { error: updateErr } = await supabase
     .from('matches')
-    .update({ gameState, status: 'playing', startedAt: new Date().toISOString() })
+    .update({
+      gameState,
+      status: 'playing',
+      startedAt: new Date().toISOString()
+    })
     .eq('id', matchId)
-    .select()
-    .single()
 
   if (updateErr) throw updateErr
 
-  return { success: true, match: updated, gameState }
+  return { success: true }
 }
 
 export async function playMove({
@@ -190,6 +252,10 @@ export async function playMove({
   const gs = match.gameState
   if (!gs) throw new Error('Game not started')
 
+  // logState(gs, 'playMove start')
+
+  console.log(`play move func`)
+
   //  EARLY DECK EMPTY WIN CHECK
   if (gs.deck.length === 0 && !gs.finished) {
     const winner = getWinnerFromTotals(gs)
@@ -200,6 +266,8 @@ export async function playMove({
     await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
     return true
   }
+
+  // const playerId = resolvePlayerId(gs, userId)
 
   if (gs.turn !== userId) throw new Error('Not your turn')
 
@@ -217,13 +285,18 @@ export async function playMove({
 
   if (!isLegal) throw new Error('Card does not match')
 
-  // PICK TWO BLOCKING
-  if (gs.stackedTwo > 0 && card.num !== 2) {
-    throw new Error('You must pick your stacked 2s')
-  }
+  // PICK TWO BLOCK
+  if (gs.stackedTwo > 0 && card.num !== 2) throw new Error('You must pick your stacked 2s')
 
-  // Remove played card
-  gs.hands[userId] = gs.hands[userId].filter((c) => c.id !== card.id)
+  // Remove card from hand
+  const playerId = userId
+  //  Object.keys(gs.playerMeta).includes(userId)
+  //  // ? userId
+  //   : Object.keys(gs.playerMeta).find((k) => gs.playerMeta[k].userId === userId)
+
+  if (!playerId) throw new Error(`Invalid playerId: ${userId}`)
+
+  gs.hands[playerId] = gs.hands[playerId].filter((c) => c.id !== card.id)
 
   // Put on discard
   gs.discardTop = card
@@ -246,7 +319,10 @@ export async function playMove({
   // -----------------------------
   // WHOT requirement handling
   // -----------------------------
+
   if (gs.requiredShape) {
+    // if there's a required shape, then the ai should either play a whot or the shape or go to market to make requiredshape null
+
     if (card.num !== 20 && card.shape !== gs.requiredShape) {
       throw new Error(`You must play a ${gs.requiredShape} card or WHOT`)
     }
@@ -257,24 +333,19 @@ export async function playMove({
     }
   }
 
-  // ==============================
-  // SPECIAL CARDS
-  // ==============================
-
+  // ---------------- SPECIAL CARDS ----------------
   if (card.num === 1) {
-    // HOLD ON — same player continues
+    // hold turn
     gs.turnIndex = currentIndex
   } else if (card.num === 2) {
-    // PICK TWO — stack and next player handles it
     gs.stackedTwo = (gs.stackedTwo ?? 0) + 2
     gs.turnIndex = (currentIndex + 1) % players.length
   } else if (card.num === 8) {
-    // SKIP — skip next player
     gs.skipped = players[(currentIndex + 1) % players.length]
     gs.turnIndex = (currentIndex + 2) % players.length
   } else if (card.num === 14) {
-    // GENERAL MARKET — every other player draws 1
-    const others = players.filter((pid) => pid !== userId)
+    // GENERAL MARKET
+    const others = players.filter((pid) => pid !== playerId)
     for (const pid of others) {
       if (gs.deck.length > 0) {
         const drawn = gs.deck.pop()
@@ -285,56 +356,39 @@ export async function playMove({
     gs.requiredShape = null
     gs.turnIndex = currentIndex // player keeps turn
   } else if (card.num === 20) {
-    // WHOT — player must pick shape or another WHOT can counter
-    gs.awaitingShapeChoice = userId
+    gs.awaitingShapeChoice = playerId
     gs.awaitingShapeEndTime = new Date(Date.now() + 20 * 1000).toISOString()
     gs.turnIndex = currentIndex
   } else {
-    // NORMAL CARD
     gs.turnIndex = (currentIndex + 1) % players.length
   }
 
-  // ===========================
-  // WIN LOGIC
-  // ===========================
-
-  //  Player emptied hand
-  if (gs.hands[userId].length === 0) {
-    gs.winner = userId
+  // Check for win
+  if (gs.hands[playerId].length === 0) {
+    gs.winner = playerId
     gs.finished = true
     gs.status = 'finished'
   }
 
   gs.turn = players[gs.turnIndex]
-
-  // Set turn end time if not finished and not awaiting shape
   if (!gs.finished && !gs.awaitingShapeChoice) {
     gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
   }
 
-  // Build a lastAction object so clients can show toasts
+  // lastAction
   gs.lastAction = {
-    id: `${Date.now()}-${userId}`, // unique id
-    type: 'play', // action type
-    actor: userId,
+    id: `${Date.now()}-${playerId}`,
+    type: 'play',
+    actor: playerId,
     cardNum: card.num,
     cardShape: card.shape ?? null,
     stackedTwo: gs.stackedTwo ?? 0,
-    // compute target for cases where a specific player is affected:
-    target:
-      card.num === 2
-        ? players[(currentIndex + 1) % players.length]
-        : card.num === 8
-          ? players[(currentIndex + 1) % players.length]
-          : null,
+    target: card.num === 2 || card.num === 8 ? players[(currentIndex + 1) % players.length] : null,
     createdAt: new Date().toISOString()
   }
 
-  // Save state
-  const { error: err } = await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
-
-  if (err) throw err
-
+  await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
+  logState(gs, 'playMove end')
   return true
 }
 
@@ -347,65 +401,53 @@ export async function pickFromMarket({ matchId, userId }: { matchId: number; use
 
   if (!match) return
 
-  const state = match.gameState
-  if (!state) throw new Error('Game not started')
+  const gs = match.gameState
+  if (!gs) throw new Error('Game not started')
 
-  // check if stacktwo is active and resolve it first
-  if (state.stackedTwo && state.stackedTwo > 0) {
-    // resolvestackedtwo function will handle drawing cards and advancing turn
-    await resolveStackedTwo({ matchId, userId })
+  logState(gs, 'pickFromMarket start')
+
+  console.log(`pick from market func `)
+
+  const playerId = userId
+
+  if (!playerId) throw new Error(`Invalid playerId: ${userId}`)
+
+  if (gs.stackedTwo && gs.stackedTwo > 0) {
+    await resolveStackedTwo({ matchId, userId: playerId })
     return
   }
 
-  if (state.turn !== userId) {
-    throw new Error('Not your turn')
-  }
+  if (gs.turn !== playerId) throw new Error('Not your turn')
 
-  if (!state.deck || state.deck.length === 0) {
-    throw new Error('Market empty')
-  }
+  if (!gs.deck || gs.deck.length === 0) throw new Error('Market empty')
 
-  // 👉 Draw the card
-  const newCard = state.deck.pop()
-  if (newCard) state.hands[userId].push(newCard)
+  // draw the card
+  const newCard = gs.deck.pop()
+  if (newCard) gs.hands[playerId].push(newCard!)
 
-  // RIGHT HERE — check if deck is empty AFTER drawing
-  if (state.deck.length === 0 && !state.finished) {
-    const winner = getWinnerFromTotals(state)
-    state.winner = winner
-    state.finished = true
-    state.status = 'finished'
+  // right here check if deck is empty AFTER drawing
+  if (gs.deck.length === 0 && !gs.finished) {
+    const winner = getWinnerFromTotals(gs)
+    gs.winner = winner
+    gs.finished = true
+    gs.status = 'finished'
 
     await supabase
       .from('matches')
-      .update({ gameState: state, status: 'ended', endedAt: new Date().toISOString() })
+      .update({ gameState: gs, status: 'ended', endedAt: new Date().toISOString() })
       .eq('id', matchId)
 
     return true
   }
 
-  // Advance turn based on playerOrder
-  const players: string[] =
-    Array.isArray(state.playerOrder) && state.playerOrder.length > 0
-      ? state.playerOrder
-      : Object.keys(state.hands)
+  // Advance turn
+  const players = gs.playerOrder
+  gs.turnIndex = (players.indexOf(playerId) + 1) % players.length
+  gs.turn = players[gs.turnIndex]
+  gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
 
-  // Ensure turnIndex exists
-  if (typeof state.turnIndex !== 'number') {
-    state.turnIndex = players.indexOf(state.turn)
-    if (state.turnIndex < 0) state.turnIndex = 0
-  }
-
-  state.turnIndex = (state.turnIndex + 1) % players.length
-  state.turn = players[state.turnIndex]
-  state.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
-
-  //   // Clear the previous action so stale toasts don't re-trigger
-  //   if (state.lastAction && state.lastAction.type !== 'chooseShape') {
-  //     state.lastAction = null
-  //   }
-
-  await supabase.from('matches').update({ gameState: state }).eq('id', matchId)
+  await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
+  logState(gs, 'pickFromMarket end')
 }
 
 export async function chooseWhotShape({
@@ -427,9 +469,16 @@ export async function chooseWhotShape({
 
   const gs = match.gameState
 
-  if (gs.awaitingShapeChoice !== userId) {
+  const playerId = userId
+  // gs.playerMeta[userId]
+  // //   ? Object.keys(gs.playerMeta).find((k) => gs.playerMeta[k].userId === userId)
+  //   : userId
+
+  if (gs.awaitingShapeChoice !== playerId) {
     throw new Error('Not awaiting your choice')
   }
+
+  console.log(`choose whot shape func `)
 
   // set required shape
   gs.requiredShape = shape
@@ -442,7 +491,7 @@ export async function chooseWhotShape({
       : Object.keys(gs.hands)
 
   if (typeof gs.turnIndex !== 'number') {
-    gs.turnIndex = players.indexOf(userId)
+    gs.turnIndex = players.indexOf(playerId ?? userId)
     if (gs.turnIndex < 0) gs.turnIndex = 0
   }
 
@@ -454,9 +503,9 @@ export async function chooseWhotShape({
 
   // after setting gs.requiredShape = shape and clearing gs.awaitingShapeChoice
   gs.lastAction = {
-    id: `${Date.now()}-${userId}`,
+    id: `${Date.now()}-${playerId}`,
     type: 'chooseShape',
-    actor: userId,
+    actor: playerId,
     shape,
     createdAt: new Date().toISOString()
   }
@@ -474,12 +523,18 @@ export async function resolveStackedTwo({ matchId, userId }: { matchId: number; 
   if (!match) throw new Error('Match not found')
   const gs = match.gameState
 
+  console.log(`resolce pick 2s `)
+
+  const playerId = gs.playerMeta[userId]
+    ? Object.keys(gs.playerMeta).find((k) => gs.playerMeta[k].userId === userId)
+    : userId
+
   const amount = gs.stackedTwo || 0
   if (amount === 0) return
 
   for (let i = 0; i < amount; i++) {
     const card = gs.deck.pop()
-    if (card) gs.hands[userId].push(card)
+    if (card) gs.hands[playerId ?? userId].push(card)
   }
 
   gs.stackedTwo = 0
@@ -491,7 +546,7 @@ export async function resolveStackedTwo({ matchId, userId }: { matchId: number; 
       : Object.keys(gs.hands)
 
   if (typeof gs.turnIndex !== 'number') {
-    gs.turnIndex = players.indexOf(userId)
+    gs.turnIndex = players.indexOf(playerId ?? userId)
     if (gs.turnIndex < 0) gs.turnIndex = 0
   }
 
@@ -508,51 +563,100 @@ export async function resolveStackedTwo({ matchId, userId }: { matchId: number; 
   await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
 }
 
+function isUUID(id: string) {
+  console.log(`isUUID check `)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+}
+
 export async function updateMatchResults(
   winnerId: string,
   playerIds: string[],
   matchId: number
 ): Promise<{ ok: true }> {
   // Validate and sanitize
-  const validatedWinner = typeof winnerId === 'string' && winnerId.trim() !== '' ? winnerId : null
-  const validatedPlayers = Array.isArray(playerIds)
-    ? playerIds.filter((id) => typeof id === 'string' && id.trim() !== '')
-    : []
+  // const validatedWinner = typeof winnerId === 'string' && winnerId.trim() !== '' ? winnerId : null
+  // const validatedPlayers = Array.isArray(playerIds)
+  //   ? playerIds.filter((id) => typeof id === 'string' && id.trim() !== '')
+  //   : []
 
-  if (!validatedWinner) {
-    console.warn('Skipping increment_profile_stats: invalid winnerId', winnerId)
-  } else {
-    console.log('Calling increment_profile_stats', {
-      winner_id: validatedWinner,
-      player_ids: validatedPlayers
-    })
+  // if (!validatedWinner) {
+  //   console.warn('Skipping increment_profile_stats: invalid winnerId', winnerId)
+  // } else {
+  //   console.log('Calling increment_profile_stats', {
+  //     winner_id: validatedWinner,
+  //     player_ids: validatedPlayers
+  //   })
 
-    const { data, error } = await supabase.rpc('increment_profile_stats', {
-      player_ids: validatedPlayers,
-      winner_id: validatedWinner
-    })
+  //   const { data, error } = await supabase.rpc('increment_profile_stats', {
+  //     player_ids: validatedPlayers,
+  //     winner_id: validatedWinner
+  //   })
 
-    if (error) {
-      console.error('RPC error increment_profile_stats', error)
-      throw error
-    }
+  //   if (error) {
+  //     console.error('RPC error increment_profile_stats', error)
+  //     throw error
+  //   }
 
-    console.log('increment_profile_stats success', data)
+  //   console.log('increment_profile_stats success', data)
 
-    const { error: updateErr } = await supabase
+  //   const { error: updateErr } = await supabase
+  //     .from('matches')
+  //     .update({ status: 'ended', endedAt: new Date().toISOString() })
+  //     .eq('id', matchId)
+  //     .select()
+  //     .single()
+
+  //   if (updateErr) {
+  //     console.error('Error updating match', updateErr)
+  //     throw new Error(updateErr.message)
+  //   }
+
+  //   console.log('Match updated successfully')
+  // }
+
+  //  Only humans belong in DB
+  const humanPlayerIds = playerIds.filter(isUUID)
+  const humanWinnerId = isUUID(winnerId) ? winnerId : null
+
+  console.log('Final match results payload:', {
+    humanPlayerIds,
+    humanWinnerId
+  })
+
+  // If NO humans exist → just end match
+  if (humanPlayerIds.length === 0) {
+    await supabase
       .from('matches')
       .update({ status: 'ended', endedAt: new Date().toISOString() })
       .eq('id', matchId)
-      .select()
-      .single()
 
-    if (updateErr) {
-      console.error('Error updating match', updateErr)
-      throw new Error(updateErr.message)
-    }
-
-    console.log('Match updated successfully')
+    return { ok: true }
   }
+
+  // Increment stats
+  if (humanWinnerId) {
+    const { error } = await supabase.rpc('increment_profile_stats', {
+      player_ids: humanPlayerIds,
+      winner_id: humanWinnerId
+    })
+
+    await supabase
+      .from('matches')
+      .update({ status: 'ended', endedAt: new Date().toISOString() })
+      .eq('id', matchId)
+
+    if (error) throw error
+  }
+
+  console.log(`match update `)
+
+  // End match
+  const { error: updateErr } = await supabase
+    .from('matches')
+    .update({ status: 'ended', endedAt: new Date().toISOString() })
+    .eq('id', matchId)
+
+  if (updateErr) throw updateErr
 
   return { ok: true }
 }
@@ -569,7 +673,11 @@ export async function advanceTurn({ matchId, userId }: { matchId: number; userId
   const gs = match.gameState
   if (!gs) throw new Error('Game not started')
 
-  if (gs.turn !== userId) throw new Error('Not your turn')
+  const playerId = gs.playerMeta[userId]
+    ? Object.keys(gs.playerMeta).find((k) => gs.playerMeta[k].userId === userId)
+    : userId
+
+  if (gs.turn !== playerId) throw new Error('Not your turn')
 
   // Advance turn
   const players = gs.playerOrder
@@ -580,8 +688,198 @@ export async function advanceTurn({ matchId, userId }: { matchId: number; userId
   // Set turn end time
   gs.turnEndTime = new Date(Date.now() + 20 * 1000).toISOString()
 
+  console.log(`turn advance func `)
+
   // Clear any lastAction
   gs.lastAction = null
 
   await supabase.from('matches').update({ gameState: gs }).eq('id', matchId)
+}
+
+//
+
+//
+
+//
+
+//
+
+//
+//
+
+//
+
+//
+
+//
+
+//
+//
+
+//
+
+//
+
+//
+
+//
+
+export async function triggerAIMove(matchId: number, aiId: string) {
+  const { data: match } = await supabase
+    .from('matches')
+    .select('gameState')
+    .eq('id', matchId)
+    .single()
+
+  if (!match?.gameState) return
+  const gs = match.gameState
+
+  // Not AI turn
+  // if (gs.turn !== aiId) return
+
+  // 1️⃣ Shape selection phase (ONLY this player can act)
+  if (gs.awaitingShapeChoice) {
+    if (gs.awaitingShapeChoice === aiId) {
+      await triggerAIShapeChoice(matchId, aiId)
+    }
+    return
+  }
+
+  const hand = gs.hands[aiId] ?? []
+
+  //  REQUIRED SHAPE PHASE (CRITICAL FIX)
+  if (gs.requiredShape) {
+    const card = hand.find((c) => c.shape === gs.requiredShape || c.num === 20)
+
+    if (card) {
+      await playMove({ matchId, userId: aiId, card })
+    } else {
+      await pickFromMarket({ matchId, userId: aiId })
+    }
+    return
+  }
+
+  // STACKED TWO
+  if (gs.stackedTwo > 0) {
+    await pickFromMarket({ matchId, userId: aiId })
+    return
+  }
+
+  console.log(`Ai playtrigger `)
+
+  //  NORMAL PLAY
+  const top = gs.discardTop
+  const playable = hand.find((c) => c.num === 20 || c.num === top?.num || c.shape === top?.shape)
+
+  if (playable) {
+    await playMove({ matchId, userId: aiId, card: playable })
+  } else {
+    await pickFromMarket({ matchId, userId: aiId })
+  }
+}
+
+// export async function triggerAIMove(matchId: number, aiId: string) {
+//   const { data: match } = await supabase
+//     .from('matches')
+//     .select('gameState')
+//     .eq('id', matchId)
+//     .single()
+
+//   if (!match?.gameState) return
+//   const gs = match.gameState
+
+//   // shape choice locks the game
+//   if (gs.awaitingShapeChoice && gs.awaitingShapeChoice !== aiId) {
+//     return
+//   }
+
+//   // AI logic
+
+//   // Shape choice ALWAYS has priority
+//   if (gs.awaitingShapeChoice === aiId) {
+//     await triggerAIShapeChoice(matchId, aiId)
+//     return
+//   }
+
+//   //  Handle stacked two / empty
+//   if (gs.stackedTwo > 0) {
+//     await pickFromMarket({ matchId, userId: aiId })
+//     return
+//   }
+
+//   const hand = gs.hands[aiId] ?? []
+
+//   //  REQUIRED SHAPE LOGIC (THIS WAS MISSING)
+//   if (gs.requiredShape) {
+//     const shapeCard = hand.find((c) => c.shape === gs.requiredShape || c.num === 20)
+
+//     if (shapeCard) {
+//       await playMove({ matchId, userId: aiId, card: shapeCard })
+//     } else {
+//       await pickFromMarket({ matchId, userId: aiId })
+//     }
+//     return
+//   }
+
+//   const top = gs.discardTop
+//   const playable = hand.find((c) => c.num === 20 || c.num === top?.num || c.shape === top?.shape)
+
+//   if (playable) {
+//     await playMove({ matchId, userId: aiId, card: playable })
+//   } else {
+//     await pickFromMarket({ matchId, userId: aiId })
+//   }
+// }
+
+type CardChoice = {
+  num: number
+  shape: ShapeType
+}
+
+export async function triggerAIShapeChoice(matchId: number, playerId: string) {
+  const { data: match } = await supabase
+    .from('matches')
+    .select('gameState')
+    .eq('id', matchId)
+    .single()
+
+  if (!match?.gameState) return
+
+  const gs = match.gameState
+  const hand: CardChoice[] = gs.hands[playerId] ?? []
+
+  const shapeCount: Record<ShapeType, number> = {
+    circle: 0,
+    triangle: 0,
+    cross: 0,
+    square: 0,
+    star: 0
+  }
+
+  for (const card of hand) {
+    // if (card.shape !== 'whot') {
+    shapeCount[card.shape]++
+    // }
+  }
+
+  let chosenShape: ShapeType | null = null
+  let max = -1
+
+  const shapes = Object.keys(shapeCount) as ShapeType[]
+
+  for (const shape of shapes) {
+    if (shapeCount[shape] > max) {
+      max = shapeCount[shape]
+      chosenShape = shape
+    }
+  }
+
+  if (!chosenShape) {
+    const fallback: ShapeType[] = ['circle', 'triangle', 'cross', 'square', 'star']
+    chosenShape = fallback[Math.floor(Math.random() * fallback.length)]
+  }
+
+  console.log(`Ai shape choice `)
+
+  await chooseWhotShape({ matchId, userId: playerId, shape: chosenShape })
 }

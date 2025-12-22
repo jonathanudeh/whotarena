@@ -54,11 +54,17 @@ export async function joinOrCreateMatch({ roomId, userId }) {
   // -----------------------------------
   // 3. Count players BEFORE insert
   // -----------------------------------
+  // todo: race condition possible here - two players could join simultaneously exceeding maxPlayers limit
+  // todo: a player already in the match cant join again - need to handle these cases.
+
   const { data: players } = await supabase.from('matchPlayers').select('id').eq('matchId', matchId)
 
   if (players && players.length >= match.maxPlayers) {
     throw new Error('Match is already full.')
   }
+
+  // 4a. Maybe add Ai players if match is not full
+  // await maybeAddAIPlayers(matchId)
 
   // 4. Insert player
   await supabase
@@ -96,6 +102,114 @@ export async function joinOrCreateMatch({ roomId, userId }) {
   return matchId
 }
 
+function generateAIName() {
+  const names = [
+    'Tobi',
+    'Zed',
+    'Ada',
+    'Nova',
+    'Ace',
+    'Kairo',
+    'Blaze',
+    'Luna',
+    'Princess',
+    'Elon',
+    'Rex',
+    'Alex',
+    'Stanley',
+    'Willy',
+    'Girl',
+    'Winner',
+    'Flash',
+    'Jinx',
+    'Shadow',
+    'Richard',
+    'Mary',
+    'Funmi'
+  ]
+  // const suffix = Math.floor(Math.random() * 100)
+  return `${names[Math.floor(Math.random() * names.length)]}`
+}
+
+function generateAIAvatar() {
+  const seed = Math.random().toString(36).slice(2)
+  return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}`
+}
+
+export async function maybeAddAIPlayers(matchId: number) {
+  // 1. Fetch fresh match
+  const { data: match, error: matchErr } = await supabase
+    .from('matches')
+    .select('id, maxPlayers, status')
+    .eq('id', matchId)
+    .single()
+
+  if (matchErr || !match) return
+  if (match.status !== 'waiting') return
+
+  // 2. Fetch current players
+  const { data: players, error: playersErr } = await supabase
+    .from('matchPlayers')
+    .select('*')
+    .eq('matchId', matchId)
+
+  if (playersErr || !players) return
+
+  const humanCount = players.filter((p) => p.playerType === 'human').length
+  const aiCount = players.filter((p) => p.playerType === 'ai').length
+
+  // Prevent double AI injection
+  if (aiCount > 0) return
+
+  // Only fill empty slots
+  const totalPlayers = humanCount + aiCount
+  const slotsLeft = match.maxPlayers - totalPlayers
+
+  if (slotsLeft <= 0) return
+
+  // 3. Recheck match status before insert
+  const { data: freshMatch } = await supabase
+    .from('matches')
+    .select('status')
+    .eq('id', matchId)
+    .single()
+
+  if (!freshMatch || freshMatch.status !== 'waiting') return
+
+  // 4 Insert AI players to fill remaining slots
+  const aiPlayers = Array.from({ length: slotsLeft }).map(() => ({
+    matchId,
+    playerType: 'ai',
+    displayName: generateAIName(),
+    avatarUrl: generateAIAvatar()
+  }))
+
+  const { error: insertErr } = await supabase.from('matchPlayers').insert(aiPlayers)
+
+  if (insertErr) {
+    console.error('Failed to insert players', insertErr)
+    return
+  }
+
+  // 5. Recount players after AI insert
+  const { data: updatedPlayers } = await supabase
+    .from('matchPlayers')
+    .select('id')
+    .eq('matchId', matchId)
+
+  if (!updatedPlayers) return
+
+  if (updatedPlayers.length === match.maxPlayers) {
+    await supabase
+      .from('matches')
+      .update({
+        status: 'playing',
+        startedAt: new Date().toISOString()
+      })
+      .eq('id', matchId)
+  }
+}
+
 // for the gameboard
 export async function getMatch(matchId: number) {
   const { data, error } = await supabase
@@ -125,10 +239,7 @@ export async function getMatch(matchId: number) {
 
 // for gameboard
 export async function getMatchPlayers(matchId: number) {
-  const { data, error } = await supabase
-    .from('matchPlayers')
-    .select('id, userId, created_at')
-    .eq('matchId', matchId)
+  const { data, error } = await supabase.from('matchPlayers').select('*').eq('matchId', matchId)
 
   if (error) throw new Error(error.message)
   return data

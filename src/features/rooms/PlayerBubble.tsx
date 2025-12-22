@@ -13,12 +13,13 @@ function PlayerBubble({
   cardCount?: number
   isMe?: boolean
 }) {
+  // console.log(`player bubble render`)
   return (
     <div className={`${className} z-50 flex flex-col items-center`}>
       <div className="relative">
         <img
           src={avatar}
-          className={`h-16 w-16 rounded-full object-cover ${isTurn ? 'ring-10 ring-green-500' : 'ring-10 ring-transparent'}`}
+          className={`h-14 w-14 rounded-full object-cover ${isTurn ? 'ring-10 ring-green-500' : 'ring-10 ring-transparent'}`}
           alt={`${username}'s avatar`}
         />
 

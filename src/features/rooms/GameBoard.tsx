@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getMatch, getMatchPlayers } from '../../services/apiJoinOrCreateMatch'
+import { getMatch, getMatchPlayers, maybeAddAIPlayers } from '../../services/apiJoinOrCreateMatch'
 import { supabase } from '../../services/supabase'
 import toast from 'react-hot-toast'
 import { useUser } from '../auth/useUser'
@@ -10,7 +10,9 @@ import {
   chooseWhotShape,
   pickFromMarket,
   playMove,
-  resolveStackedTwo
+  resolveStackedTwo,
+  triggerAIMove,
+  triggerAIShapeChoice
 } from '../../services/apiGameService'
 import ChooseShapeModal from './ChooseShapeModal'
 import WinnerScreen from './WinnerScreen'
@@ -18,11 +20,15 @@ import PlayerBubble from './PlayerBubble'
 import { Card } from './Card'
 import CircularTimer from './CircularTimer'
 import { useTurnTimer } from './useTurnTimer'
+import SpinnerMini from '../../components/SpinnerMini'
 
 interface Player {
   id: string
   userId: string
   created_at: string
+  playerType: 'human' | 'ai'
+  displayName?: string
+  avatarUrl?: string
 }
 
 interface Profile {
@@ -57,7 +63,6 @@ export default function GameBoard() {
   // states
   const [match, setMatch] = useState<Match | null>(null)
   const [me, setMe] = useState<string>('')
-
   const [players, setPlayers] = useState<Player[]>([])
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [hand, setHand] = useState<Card[]>([]) //players card
@@ -83,7 +88,6 @@ export default function GameBoard() {
     async function load() {
       const matchData = await getMatch(Number(matchId))
       setMatch(matchData)
-      console.log('GameBoard setMatch:', matchData)
 
       const matchPlayers = await getMatchPlayers(Number(matchId))
       setPlayers(matchPlayers)
@@ -96,7 +100,7 @@ export default function GameBoard() {
       }
 
       // Fetch each player's profile
-      const ids = matchPlayers.map((p) => p.userId)
+      const ids = matchPlayers.map((p) => p.userId).filter((id): id is string => !!id)
 
       const { data: profs, error } = await supabase.from('profiles').select('*').in('userId', ids)
 
@@ -122,7 +126,15 @@ export default function GameBoard() {
   async function playCard(card) {
     if (!matchId || !me) return
 
+    if (gameState.turn === undefined || gameState.turn !== me) {
+      toast.error("It's not you turn")
+      return
+    }
+
+    console.log(`play card func`)
+
     //  1. If PICK TWO is active and player didn't play a "2", resolve it
+
     if (match?.gameState?.stackedTwo && card.num !== 2) {
       try {
         await resolveStackedTwo({
@@ -135,7 +147,7 @@ export default function GameBoard() {
       return
     }
 
-    // 🔥 Required shape enforcement (WHOT)
+    // Required shape enforcement (WHOT)
     const requiredShape = gameState?.requiredShape
 
     // WHOT mode check
@@ -158,41 +170,22 @@ export default function GameBoard() {
     }
   }
 
-  // ----------------------------
-  // DYNAMIC PLAYER POSITIONS
-  // ----------------------------
-  function getPositionStyle(index, total) {
-    if (total === 1) {
-      return 'bottom-6 left-1/2 -translate-x-1/2' // only you alone
-    }
+  // Memoize the ordered players WITH their identity data
+  const orderedPlayersWithData = useMemo(() => {
+    const ordered = [...players]
+    ordered.sort((a, b) => {
+      if (a.userId === me) return -1
+      if (b.userId === me) return 1
+      return 0
+    })
 
-    if (total === 2) {
-      return index === 0 ? 'bottom-6 left-1/2 -translate-x-1/2' : 'top-6 left-1/2 -translate-x-1/2'
-    }
-
-    if (total === 3) {
-      if (index === 0) return 'bottom-6 left-1/2 -translate-x-1/2'
-      if (index === 1) return 'top-6 left-1/2 -translate-x-1/2'
-      return 'left-6 top-1/2 -translate-y-1/2'
-    }
-
-    if (total === 4) {
-      if (index === 0) return 'bottom-6 left-1/2 -translate-x-1/2'
-      if (index === 1) return 'top-6 left-1/2 -translate-x-1/2'
-      if (index === 2) return 'right-6 top-1/2 -translate-y-1/2'
-      return 'left-6 top-1/2 -translate-y-1/2'
-    }
-
-    return ''
-  }
-
-  // inside GameBoard return, before mapping players
-  const orderedPlayers = [...players]
-  orderedPlayers.sort((a, b) => {
-    if (a.userId === me) return -1 // put me first
-    if (b.userId === me) return 1
-    return 0
-  })
+    // Map to include the data we need, so we don't recreate objects in render
+    return ordered.map((p) => ({
+      player: p,
+      key: getPlayerKey(p),
+      identity: getPlayerIdentity(p, profiles)
+    }))
+  }, [players, me, profiles]) // Only recalculate when players or me changes
 
   // Realtime subscription to match.gameState changes
   useEffect(() => {
@@ -208,13 +201,13 @@ export default function GameBoard() {
           const oldRow = payload.old
           if (!newRow) return
 
-          // update match as you already do
+          // update match
           setMatch((prev) => ({ ...prev, ...newRow }))
 
           const newGS = newRow.gameState
           const oldGS = (oldRow as any)?.gameState
 
-          // Update UI pieces you already do
+          // Update UI pieces
           if (newGS) {
             if (newGS.discardTop) setTopCard(newGS.discardTop)
             if (me) setHand(newGS.hands?.[me] ?? [])
@@ -225,32 +218,37 @@ export default function GameBoard() {
           const newAction = newGS?.lastAction
 
           if (newAction && newAction.id !== oldActionId) {
-            const actorName = profiles[newAction.actor]?.username ?? newAction.actor
+            const actorName = profiles[newAction.actor]?.username ?? 'player'
 
             // handle types
             if (newAction.type === 'play') {
               const num = newAction.cardNum
               if (num === 1) {
+                toast.dismissAll()
                 toast(`${actorName} played HOLD ON, they keep the turn.`)
               } else if (num === 2) {
                 const targetId = newAction.target
                 const targetName = profiles[targetId]?.username ?? targetId
                 // everyone notification
+                toast.dismissAll()
                 toast(
                   `${actorName} played PICK TWO — ${targetName} must pick ${newAction.stackedTwo}`
                 )
                 // targeted (only show to the affected player)
                 if (me === targetId) {
+                  toast.dismissAll()
                   toast.error(`You must pick ${newAction.stackedTwo} cards`)
                 }
               } else if (num === 8) {
                 const skippedId = newAction.target
                 const skippedName = profiles[skippedId]?.username ?? skippedId
+                toast.dismissAll()
                 toast(`${actorName} played SUSPENSION, ${skippedName?.toUpperCase()} was skipped`)
                 if (me === skippedId) {
                   toast.error('You were suspended (skipped)')
                 }
               } else if (num === 14) {
+                toast.dismissAll()
                 toast(`${actorName} played GENERAL MARKET. 1 card for everyone!`)
               } else if (num === 20) {
                 // WHOT played; the player will choose a shape next
@@ -281,8 +279,8 @@ export default function GameBoard() {
           const updated = await getMatchPlayers(Number(matchId))
           setPlayers(updated)
 
-          // NEW CODE: refresh profiles of all players
-          const ids = updated.map((p) => p.userId)
+          // refresh profiles of all players
+          const ids = updated.map((p) => p.userId).filter((id): id is string => !!id)
 
           const { data: profs, error: profileError } = await supabase
             .from('profiles')
@@ -303,9 +301,7 @@ export default function GameBoard() {
     }
   }, [matchId])
 
-  // ============================================
-  // 🚀 NEW: START GAME LOGIC
-  // ============================================
+  // NEW: START GAME LOGIC
   // AUTO START GAME WHEN FULL
   useEffect(() => {
     if (!match) return
@@ -317,6 +313,54 @@ export default function GameBoard() {
 
     startGame(Number(matchId))
   }, [match, matchId, players.length, startGame])
+
+  //  AI FILL WHEN WAITING TOO LONG
+  useEffect(() => {
+    if (!match) return
+
+    // only care about waiting state
+    if (match.status !== 'waiting') return
+
+    // already full? do nothing
+    if (players.length >= match.maxPlayers) return
+
+    // game already initialized? bail
+    if (match.gameState) return
+
+    const AI_WAIT_TIME = 20000 // 20secs
+
+    const timeout = setTimeout(() => {
+      // last safety check before calling server
+      if (match.status !== 'waiting') return
+      if (players.length >= match.maxPlayers) return
+
+      maybeAddAIPlayers(Number(matchId))
+    }, AI_WAIT_TIME)
+
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [match, matchId, players.length])
+
+  useEffect(() => {
+    if (!match || !gameState) return
+
+    if (!gameState.deck || gameState.deck.length === 0) {
+      return
+    }
+
+    const currentPlayerMeta = gameState.playerMeta[gameState.turn]
+    if (!currentPlayerMeta || currentPlayerMeta.type !== 'ai') return
+    if (gameState.awaitingShapeChoice && gameState.awaitingShapeChoice !== gameState.turn) {
+      return
+    }
+
+    const timer = setTimeout(() => {
+      triggerAIMove(Number(match.id), gameState.turn)
+    }, 5200)
+
+    return () => clearTimeout(timer)
+  }, [gameState, match, players])
 
   //  Prevent crash when gameState is not ready
   if (!match || !match.gameState) {
@@ -330,14 +374,19 @@ export default function GameBoard() {
 
   if (gameState.finished || gameState.status === 'finished') {
     const winnerId = gameState.winner!
-    console.log(match)
+    // find winner in players array, both human or player
+    const winnerPlayer = players.find((p) => getPlayerKey(p) === winnerId)
 
-    const winnerProfile = profiles[winnerId]
+    // Get winner details using the same logic as PlayerBubble
+    const winnerData = winnerPlayer
+      ? getPlayerIdentity(winnerPlayer, profiles)
+      : { name: 'Player', avatar: undefined }
+
     return (
       <WinnerScreen
         winnerId={winnerId}
-        winnerName={winnerProfile?.username ?? 'Player'}
-        winnerAvatar={winnerProfile?.avatar ?? undefined}
+        winnerName={winnerData.name ?? 'Player'}
+        winnerAvatar={winnerData.avatar}
         playerIds={gameState.playerOrder}
         prizeAmount={match?.prize}
         matchId={match?.id}
@@ -345,23 +394,27 @@ export default function GameBoard() {
     )
   }
 
-  if (isStarting) return <span>Starting game .....</span>
+  if (isStarting) return <SpinnerMini />
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#0e0f1a] text-white">
+    <div className="relative h-dvh w-full overflow-hidden bg-[#0e0f1a] text-white">
       {/* PLAYER POSITIONS */}
       <div className="pointer-events-none absolute inset-0">
-        {orderedPlayers.map((p, i) => (
-          <PlayerBubble
-            key={p.userId}
-            username={profiles[p.userId]?.username}
-            avatar={profiles[p.userId]?.avatar}
-            className={`absolute ${getPositionStyle(i, orderedPlayers.length)}`}
-            isTurn={gameState.turn === p.userId}
-            cardCount={gameState.hands?.[p.userId]?.length ?? 0}
-            isMe={p.userId === me}
-          />
-        ))}
+        {orderedPlayersWithData.map((playerData, i) => {
+          const { player, key: playerKey, identity } = playerData
+
+          return (
+            <PlayerBubble
+              key={playerKey}
+              username={identity.name}
+              avatar={identity.avatar}
+              className={`absolute ${getPositionStyle(i, orderedPlayersWithData.length)}`}
+              isTurn={gameState.turn === playerKey}
+              cardCount={gameState.hands?.[playerKey]?.length ?? 0}
+              isMe={playerKey === me}
+            />
+          )
+        })}
       </div>
 
       {/* CENTER AREA (Deck + Discard) */}
@@ -429,7 +482,7 @@ export default function GameBoard() {
           {/* Turn Timer */}
           {(gameState?.turn === me || awaitingShape === me) && (
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-30 transform">
-              <CircularTimer timeLeft={timeLeft} total={20} />
+              <CircularTimer timeLeft={timeLeft} total={30} />
             </div>
           )}
         </div>
@@ -468,4 +521,52 @@ export default function GameBoard() {
       )}
     </div>
   )
+}
+
+function getPlayerIdentity(player, profiles: Record<string, Profile>) {
+  if (!player.userId) {
+    // ai
+    return {
+      name: player.displayName,
+      avatar: player.avatarUrl
+    }
+  }
+
+  // human
+  return {
+    name: profiles[player.userId]?.username ?? 'Player',
+    avatar: profiles[player.userId]?.avatar
+  }
+}
+
+function getPlayerKey(player) {
+  return String(player.userId ?? player.id)
+}
+
+// ----------------------------
+// DYNAMIC PLAYER POSITIONS
+// ----------------------------
+function getPositionStyle(index: number, total: number) {
+  if (total === 1) {
+    return 'bottom-6 left-1/2 -translate-x-1/2' // only you alone
+  }
+
+  if (total === 2) {
+    return index === 0 ? 'bottom-6 left-1/2 -translate-x-1/2' : 'top-6 left-1/2 -translate-x-1/2'
+  }
+
+  if (total === 3) {
+    if (index === 0) return 'bottom-6 left-1/2 -translate-x-1/2'
+    if (index === 1) return 'top-6 left-1/2 -translate-x-1/2'
+    return 'left-6 top-1/2 -translate-y-1/2'
+  }
+
+  if (total === 4) {
+    if (index === 0) return 'bottom-6 left-1/2 -translate-x-1/2'
+    if (index === 1) return 'top-6 left-1/2 -translate-x-1/2'
+    if (index === 2) return 'right-6 top-1/2 -translate-y-1/2'
+    return 'left-6 top-1/2 -translate-y-1/2'
+  }
+
+  return ''
 }
