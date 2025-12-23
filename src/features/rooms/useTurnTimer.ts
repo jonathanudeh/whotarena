@@ -2,16 +2,17 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { chooseWhotShape, pickFromMarket } from '../../services/apiGameService'
 import toast from 'react-hot-toast'
 import type { ShapeType } from './ChooseShapeModal'
+import type { GameState } from './types'
 
-interface GameState {
-  turn: string
-  awaitingShapeChoice?: string
-  turnEndTime?: string
-  awaitingShapeEndTime?: string
-  playerOrder: string[]
-  playerMeta?: Record<string, { type: 'human' | 'ai' }>
-  // other fields...
-}
+// interface GameState {
+//   turn: string
+//   awaitingShapeChoice?: string
+//   turnEndTime?: string
+//   awaitingShapeEndTime?: string
+//   playerOrder: string[]
+//   playerMeta?: Record<string, { type: 'human' | 'ai' }>
+//   // other fields...
+// }
 
 const COUNTDOWN_SECONDS = 30
 

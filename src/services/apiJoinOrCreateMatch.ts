@@ -1,9 +1,13 @@
 import { supabase } from './supabase'
 
-export async function joinOrCreateMatch({ roomId, userId }) {
-  // -----------------------------------
-  // 1. Find a waiting match
-  // -----------------------------------
+export async function joinOrCreateMatch({
+  roomId,
+  userId
+}: {
+  roomId: number
+  userId: string
+}): Promise<number> {
+  // Find a waiting match
   const { data: matches, error: matchErr } = await supabase
     .from('matches')
     .select('id, maxPlayers')
@@ -24,9 +28,7 @@ export async function joinOrCreateMatch({ roomId, userId }) {
     }
   }
 
-  // -----------------------------------
-  // 2. If no match found → create one
-  // -----------------------------------
+  // If no match found, create one
   if (!match) {
     const { data: room, error: roomErr } = await supabase
       .from('rooms')
@@ -51,9 +53,7 @@ export async function joinOrCreateMatch({ roomId, userId }) {
 
   const matchId = match.id
 
-  // -----------------------------------
-  // 3. Count players BEFORE insert
-  // -----------------------------------
+  // Count players BEFORE insert
   // todo: race condition possible here - two players could join simultaneously exceeding maxPlayers limit
   // todo: a player already in the match cant join again - need to handle these cases.
 
@@ -63,10 +63,7 @@ export async function joinOrCreateMatch({ roomId, userId }) {
     throw new Error('Match is already full.')
   }
 
-  // 4a. Maybe add Ai players if match is not full
-  // await maybeAddAIPlayers(matchId)
-
-  // 4. Insert player
+  //  Insert player
   await supabase
     .from('matchPlayers')
     .insert({
@@ -76,9 +73,8 @@ export async function joinOrCreateMatch({ roomId, userId }) {
     .select()
     .single()
 
-  // -----------------------------------
-  // 5. Recount players AFTER join
-  // -----------------------------------
+  //  Recount players AFTER join
+
   const { data: updatedPlayers, error: countErr } = await supabase
     .from('matchPlayers')
     .select('id')
@@ -110,11 +106,13 @@ function generateAIName() {
     'Nova',
     'Ace',
     'Kairo',
-    'Blaze',
+    'Roda',
+    'Craze',
     'Luna',
     'Princess',
     'Elon',
     'Rex',
+    'Qwin',
     'Alex',
     'Stanley',
     'Willy',
@@ -122,9 +120,9 @@ function generateAIName() {
     'Winner',
     'Flash',
     'Jinx',
-    'Shadow',
-    'Richard',
     'Mary',
+    'Shadow',
+    'Richy',
     'Funmi'
   ]
   // const suffix = Math.floor(Math.random() * 100)

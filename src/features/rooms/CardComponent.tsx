@@ -9,7 +9,7 @@ interface CardProps {
   style?: React.CSSProperties
 }
 
-export const Card: React.FC<CardProps> = ({
+export const CardComponent: React.FC<CardProps> = ({
   num,
   shape,
   isFaceDown = false,

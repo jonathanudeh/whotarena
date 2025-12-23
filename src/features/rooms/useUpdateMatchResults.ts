@@ -1,10 +1,9 @@
 import { useMutation } from '@tanstack/react-query'
 import { updateMatchResults as updateMatchResultsAPi } from '../../services/apiGameService'
 import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
 
 export function useUpdateMatchResults(onSuccessCallback?: () => void) {
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
 
   const { mutate: updateMatchResults, isPending: isUpdatingMatchResults } = useMutation({
     mutationFn: ({
