@@ -2,9 +2,7 @@ import type { ShapeType } from '../features/rooms/ChooseShapeModal'
 import { getWinnerFromTotals } from '../utils/helper'
 import { supabase } from './supabase'
 
-/**
- * Types
- */
+// types
 export type Shape = 'circle' | 'triangle' | 'cross' | 'square' | 'star' | 'whot'
 export type Card = { id: string; shape: Shape; num: number } // small card shape/num identifier
 

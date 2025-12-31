@@ -8,9 +8,11 @@ import {
   LuSettings
 } from 'react-icons/lu'
 import { useUserProfile } from '../features/user/useUserProfile'
+import { BiHome } from 'react-icons/bi'
 
 const navItems = [
   { label: 'Dashboard', to: '/admin', icon: LuLayoutDashboard, end: true },
+  { label: 'Lobby', to: '/', icon: BiHome },
   { label: 'Rooms', to: '/admin/rooms', icon: LuDoorOpen },
   { label: 'Tournaments', to: '/admin/tournaments', icon: LuTrophy },
   { label: 'Transactions', to: '/admin/transactions', icon: LuWallet },

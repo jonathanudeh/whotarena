@@ -6,7 +6,6 @@ import ConfirmModal from '../../components/ConfirmModal'
 
 interface Props {
   room: Room
-  //   onDelete: (id: number) => void
 }
 
 export default function RoomRowDesktop({ room }: Props) {

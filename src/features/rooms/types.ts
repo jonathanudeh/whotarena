@@ -1,5 +1,3 @@
-// features/rooms/types.ts
-
 export interface Player {
   id: string
   userId: string | null

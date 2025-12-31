@@ -23,7 +23,7 @@ export function formatTransactionDate(dateInput: string | Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
-//  format only the date (e.g. "11 Nov 2025")
+//  format only the date e.g 11 Nov 2025
 export function formatDateOnly(date?: string | Date) {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('en-NG', {
@@ -33,7 +33,7 @@ export function formatDateOnly(date?: string | Date) {
   })
 }
 
-//  format only the time (e.g. "10:45 PM")
+//  format only the time 10:45 PM
 export function formatTimeOnly(date: string | Date) {
   return new Date(date).toLocaleTimeString('en-NG', {
     hour: '2-digit',
@@ -41,7 +41,17 @@ export function formatTimeOnly(date: string | Date) {
   })
 }
 
-// Returns a formatted "Closes in Xh:Ym" or "Xd Yh"
+//  14:35
+export function formatTime(createdAt: string | Date) {
+  const date = new Date(createdAt)
+
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+
+  return `${hours}:${minutes}`
+}
+
+// Returns a formatted Closes in Xh:Ym or Xd Yh
 export function formatTimeRemaining(endAt: string | Date) {
   const now = new Date()
   const end = new Date(endAt)

@@ -1,5 +1,12 @@
+import type { Shape } from './types'
+
+interface ShapeIconProps {
+  shape: Shape
+  className?: string
+}
+
 // SVG Shapes for Cards
-export const ShapeIcon = ({ shape, className }) => {
+export const ShapeIcon = ({ shape, className }: ShapeIconProps) => {
   const commonProps = {
     className: className,
     fill: 'currentColor',

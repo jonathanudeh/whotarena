@@ -1,14 +1,26 @@
 import { motion } from 'framer-motion'
 import { IoTrophy } from 'react-icons/io5'
-import { formatCurrency, formatTimeRemaining } from '../../utils/helper'
-import { useCountdown } from '../../hooks/useCountdown'
+import { formatCurrency } from '../../utils/helper'
 
-function TournamentCard({ tournament, delay }) {
+type TournamentCardProps = {
+  tournament: {
+    id: number
+    name: string
+    entryFee: number
+    prize: number
+    maxPlayers: number
+    created_at: string
+    image: string
+    startAt: string
+    endAt: string
+  }
+}
+
+function TournamentCard({ tournament }: TournamentCardProps) {
   const { name, entryFee, prize, maxPlayers, image, startAt, endAt } = tournament
-  const { formatted } = useCountdown(endAt)
 
   return (
-    <li className="relative min-w-[85%] snap-start overflow-hidden rounded-2xl border border-white/10 shadow-2xl md:min-w-[420px]">
+    <li className="relative w-full min-w-[85%] snap-start overflow-hidden rounded-2xl border border-white/10 shadow-2xl md:w-100 md:min-w-[420px]">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -18,7 +30,7 @@ function TournamentCard({ tournament, delay }) {
       />
 
       {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-black/40" />
+      <div className="absolute inset-0 bg-linear-to-br from-black/80 via-black/60 to-black/40" />
 
       {/* Foreground content */}
       <div className="relative flex flex-col gap-4 p-5 text-white">

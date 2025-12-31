@@ -1,23 +1,37 @@
 import { ShapeIcon } from './ShapeIcon'
+import type { Shape } from './types'
 
-interface CardProps {
-  num?: number
-  shape?: string
-  isFaceDown?: boolean
+// interface CardProps {
+//   num?: number
+//   shape?: Shape
+//   isFaceDown?: boolean
+//   onClick?: () => void
+//   className?: string
+//   style?: React.CSSProperties
+// }
+
+interface FaceDownCardProps {
+  isFaceDown: true
   onClick?: () => void
   className?: string
   style?: React.CSSProperties
 }
 
-export const CardComponent: React.FC<CardProps> = ({
-  num,
-  shape,
-  isFaceDown = false,
-  onClick,
-  className = '',
-  style = {}
-}) => {
-  if (isFaceDown) {
+interface FaceUpCardProps {
+  isFaceDown?: false
+  num: number
+  shape: Shape
+  onClick?: () => void
+  className?: string
+  style?: React.CSSProperties
+}
+
+type CardProps = FaceDownCardProps | FaceUpCardProps
+
+export const CardComponent: React.FC<CardProps> = (props) => {
+  const { onClick, className = '', style = {} } = props
+
+  if (props.isFaceDown) {
     return (
       <div
         onClick={onClick}
@@ -42,6 +56,8 @@ export const CardComponent: React.FC<CardProps> = ({
       </div>
     )
   }
+
+  const { num, shape } = props
 
   return (
     <div

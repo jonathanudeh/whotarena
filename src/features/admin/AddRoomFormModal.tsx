@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import AdminFormRow from '../../components/AdminFormRow'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createRoom } from '../../services/apiRooms'
@@ -8,8 +8,16 @@ interface AddRoomFormModalProps {
   onClose: () => void
 }
 
+interface AddRoomFormData {
+  id: number
+  name: string
+  entryFee: number
+  prize: number
+  maxPlayers: number
+}
+
 export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
-  const { register, handleSubmit, reset, formState } = useForm()
+  const { register, handleSubmit, reset, formState } = useForm<AddRoomFormData>()
 
   const { errors } = formState
 
@@ -30,12 +38,12 @@ export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
     }
   })
 
-  function onSubmitForm(data) {
+  function onSubmitForm(data: AddRoomFormData) {
     // console.log(data)
     mutate(data)
   }
 
-  function onErrorForm(errors) {
+  function onErrorForm(errors: FieldErrors<AddRoomFormData>) {
     console.error(errors)
   }
 
@@ -45,7 +53,7 @@ export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
         <h2 className="text-center text-xl font-bold text-white">Create New Room</h2>
 
         <form onSubmit={handleSubmit(onSubmitForm, onErrorForm)} className="space-y-4">
-          <AdminFormRow label="Room name" error={errors?.name?.message}>
+          <AdminFormRow label="Room name" error={errors?.name?.message?.toString()}>
             <input
               type="text"
               id="name"
@@ -58,7 +66,7 @@ export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
             />
           </AdminFormRow>
 
-          <AdminFormRow label="Entry Fee (₦)" error={errors?.entryFee?.message}>
+          <AdminFormRow label="Entry Fee (₦)" error={errors?.entryFee?.message?.toString()}>
             <input
               type="number"
               id="entryFee"
@@ -71,7 +79,7 @@ export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
             />
           </AdminFormRow>
 
-          <AdminFormRow label="Prize Pool (₦)" error={errors?.prize?.message}>
+          <AdminFormRow label="Prize Pool (₦)" error={errors?.prize?.message?.toString()}>
             <input
               type="number"
               id="prize"
@@ -84,7 +92,7 @@ export default function AddRoomFormModal({ onClose }: AddRoomFormModalProps) {
             />
           </AdminFormRow>
 
-          <AdminFormRow label="Max Players" error={errors?.maxPlayers?.message}>
+          <AdminFormRow label="Max Players" error={errors?.maxPlayers?.message?.toString()}>
             <select
               {...register('maxPlayers', {
                 required: 'This field is required'

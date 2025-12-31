@@ -18,7 +18,7 @@ function Button({
 
   if (variation === 'primary') className += 'bg-btn-primary hover:btn-pri-hover'
   if (variation === 'secondary') className += 'border border-background'
-  if (variation === 'danger') className += 'bg-btn-danger'
+  if (variation === 'danger') className += 'bg-btn-danger w-full'
   if (variation === 'logOut')
     className +=
       'bg-card-bg flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-red-500'

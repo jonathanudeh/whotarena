@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion'
 
 import { LuClock, LuDoorOpen, LuUsers } from 'react-icons/lu'
-import { formatCurrency } from '../../utils/helper'
+import { formatCurrency, formatTime } from '../../utils/helper'
 import toast from 'react-hot-toast'
 import { useUser } from '../auth/useUser'
 import SpinnerMini from '../../components/SpinnerMini'
 import { useAvailableBalance } from '../user/wallet/useAvailableBalance'
 import { useNavigate } from 'react-router-dom'
 import { useJoinWithEntryFee } from './useJoinWithEntryFee'
+import { usePlayersCount } from '../../hooks/usePlayersCount'
 
 type RoomCardProps = {
   room: {
@@ -16,17 +17,20 @@ type RoomCardProps = {
     entryFee: number
     prize: number
     maxPlayers: number
+    created_at: string
   }
   delay: number
 }
 
 function RoomCard({ room, delay }: RoomCardProps) {
   const navigate = useNavigate()
-  const { id: roomId, name, entryFee, prize, maxPlayers } = room
+  const { id: roomId, name, entryFee, prize, maxPlayers, created_at } = room
   const { user, isAuthenticated } = useUser()
   const { availableBalance, isLoadingBalance } = useAvailableBalance()
   const { joinWithFee, retryJoin, isJoining, error, canRetryJoin } = useJoinWithEntryFee()
   const userId = user?.id
+
+  const playersCount = usePlayersCount(roomId)
 
   async function handleJoinRoom() {
     try {
@@ -77,13 +81,13 @@ function RoomCard({ room, delay }: RoomCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       whileHover={{ scale: 1 }}
-      className={`'border shadow-[0_0_15px_-4px_rgba(111,65,226,0.35)]' overflow-hidden rounded-xl border-[#6F41E2]/20 bg-[#1D1533] shadow-2xl`}
+      className={`w-full overflow-hidden rounded-xl border border-[#6F41E2]/20 bg-[#1D1533] shadow-[0_0_15px_-4px_rgba(111,65,226,0.35)]`}
     >
       <div className="rounded-xl border border-[#6F41E2]/20 bg-[#1D1533] p-4 shadow-[0_0_25px_-4px_rgba(111,65,226,0.35)]">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-slate-100">{name}</h2>
+          <h2 className="font-semibold text-slate-100 capitalize">{name}</h2>
           <div className="flex items-center gap-1 text-sm text-[#8F62FF]">
-            <LuClock /> <span>12:45</span>
+            <LuClock /> <span>{formatTime(created_at)}</span>
           </div>
         </div>
 
@@ -108,7 +112,15 @@ function RoomCard({ room, delay }: RoomCardProps) {
         {/*  */}
         <div className="mt-3 flex items-center justify-center gap-2 text-center text-sm text-white">
           <LuUsers className="text-[#A78BFA]" />
-          {maxPlayers + 7}
+          <motion.span
+            key={playersCount}
+            initial={{ scale: 0.9, opacity: 0.6 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            {playersCount}
+          </motion.span>
+
           <span className="font-bold text-[#6F41E2]">+</span>
         </div>
 
@@ -116,7 +128,7 @@ function RoomCard({ room, delay }: RoomCardProps) {
         {canRetryJoin ? (
           <div className="mt-4 flex flex-col gap-2">
             <button
-              className="flex w-full items-center justify-center rounded-xl bg-[#FF6B6B] py-2 font-semibold text-white hover:bg-[#ff5252]"
+              className="flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#FF6B6B] py-2 font-semibold text-white hover:bg-[#ff5252]"
               onClick={handleRetryJoin}
               disabled={isJoining}
             >
@@ -126,7 +138,7 @@ function RoomCard({ room, delay }: RoomCardProps) {
           </div>
         ) : (
           <button
-            className={`mt-4 flex w-full items-center justify-center rounded-xl bg-[#00D57E] py-2 font-semibold text-[#0B1F16] hover:bg-[#1DF59C] ${isJoining ? 'bg-card-bg cursor-not-allowed opacity-70' : ''}`}
+            className={`mt-4 flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#00D57E] py-2 font-semibold text-[#0B1F16] hover:bg-[#1DF59C] ${isJoining ? 'bg-card-bg cursor-not-allowed opacity-70' : ''}`}
             onClick={handleJoinRoom}
             disabled={isJoining}
           >

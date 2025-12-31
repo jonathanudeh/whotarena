@@ -10,8 +10,8 @@ const className =
   'bg-background border-border/30 focus:border-border/50 w-full rounded-lg border-2 px-4 py-3 text-white placeholder-gray-400 outline-none'
 
 function LogInForm() {
-  const [email, setEmail] = useState('test@test.com')
-  const [password, setPassword] = useState('test@test')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const { logIn, IsLoggingIn } = useLogIn()
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

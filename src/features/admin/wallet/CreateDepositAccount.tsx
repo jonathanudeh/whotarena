@@ -7,6 +7,7 @@ import { HiPencil } from 'react-icons/hi2'
 import { useCreatWalletAccount } from './useCreateWalletAccount'
 import { useEditWalletAccount } from './useEditWalletAccount'
 import type { WalletForm } from '../../../types/wallet'
+import InfoRow from '../../../components/InfoRow'
 
 function CreateDepositAccount() {
   const [openForm, setOpenForm] = useState(false)
@@ -140,14 +141,3 @@ function CreateDepositAccount() {
 }
 
 export default CreateDepositAccount
-
-function InfoRow({ label, value }) {
-  return (
-    <div className="flex flex-col items-center">
-      <span className="text-center text-sm text-gray-300">{label}</span>
-      <div className="text-center">
-        <span className="font-bold">{value}</span>
-      </div>
-    </div>
-  )
-}

@@ -1,6 +1,12 @@
 import { motion } from 'framer-motion'
 
-function ActiveTab({ setActiveTab, activeTab }) {
+export type TabType = 'deposit' | 'withdraw'
+interface ActiveTabProps {
+  activeTab: TabType
+  setActiveTab: (tab: TabType) => void
+}
+
+function ActiveTab({ setActiveTab, activeTab }: ActiveTabProps) {
   return (
     <div className="flex gap-4">
       <motion.button

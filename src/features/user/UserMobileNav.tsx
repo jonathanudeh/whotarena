@@ -1,4 +1,4 @@
-import { LuLayoutDashboard, LuSettings, LuTrophy, LuUser, LuWallet, LuX } from 'react-icons/lu'
+import { LuLayoutDashboard, LuSettings, LuUser, LuWallet, LuX } from 'react-icons/lu'
 import { NavLink } from 'react-router-dom'
 import LogOut from '../auth/LogOut'
 
@@ -9,7 +9,7 @@ interface UserMobileNavProps {
 const navItems = [
   { label: 'Lobby', to: '/', icon: LuLayoutDashboard, end: true },
   { label: 'Wallet', to: '/wallet', icon: LuWallet },
-  { label: 'Tournament', to: '/tournament', icon: LuTrophy },
+  // { label: 'Tournament', to: '/tournament', icon: LuTrophy },
   { label: 'Profile', to: '/profile', icon: LuUser },
   { label: 'Settings', to: '/settings', icon: LuSettings }
 ]
@@ -40,8 +40,8 @@ function UserMobileNav({ onNavbarOpen }: UserMobileNavProps) {
                 end={item.end}
                 onClick={() => onNavbarOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded px-3 py-2 transition hover:bg-slate-800 ${
-                    isActive ? 'bg-slate-700 font-semibold' : 'text-slate-200'
+                  `flex items-center gap-3 border-b border-slate-800 px-3 py-2 transition hover:bg-slate-800 ${
+                    isActive ? 'rounded bg-slate-700 font-semibold' : 'text-slate-200'
                   }`
                 }
               >
@@ -52,7 +52,9 @@ function UserMobileNav({ onNavbarOpen }: UserMobileNavProps) {
           })}
         </nav>
 
-        <LogOut />
+        <span className="mt-auto w-full">
+          <LogOut />
+        </span>
       </aside>
     </>
   )
