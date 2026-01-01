@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import Confetti from 'react-confetti'
 import { useUpdateMatchResults } from './useUpdateMatchResults'
 import { useGamePrize } from './useGamePrize'
-import { useNavigate } from 'react-router-dom'
 
 interface WinnerScreenProps {
   winnerId: string
@@ -26,7 +25,6 @@ export default function WinnerScreen({
   )
   const { awardGamePrize, isAwardingGamePrize } = useGamePrize()
   const isLoading = isUpdatingMatchResults || isAwardingGamePrize
-  const navigate = useNavigate()
   const hasFinalized = useRef(false)
 
   const isHumanWinner = /^[0-9a-f-]{36}$/i.test(winnerId)
@@ -60,11 +58,11 @@ export default function WinnerScreen({
     console.log('Setting redirect timeout')
     const t = setTimeout(() => {
       console.log('Redirecting to lobby')
-      navigate('/lobby', { replace: true })
+      window.location.replace('/lobby')
     }, 5000)
 
     return () => clearTimeout(t)
-  }, [isLoading, navigate])
+  }, [isLoading])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">

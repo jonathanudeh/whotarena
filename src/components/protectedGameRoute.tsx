@@ -9,17 +9,17 @@ function ProtectedGameRoute({ children }: { children: React.ReactNode }) {
   const { matchId } = useParams()
   const { isFetchingUser, isAuthenticated } = useUser()
 
-  // 1️⃣ Redirect to login if not authenticated
+  // 1 Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuthenticated && !isFetchingUser) navigate('/login', { replace: true })
   }, [isAuthenticated, isFetchingUser, navigate])
 
-  // 2️⃣ Redirect if matchId is missing
+  // 2 Redirect if matchId is missing
   useEffect(() => {
     if (!matchId && !isFetchingUser) navigate('/lobby', { replace: true })
   }, [matchId, isFetchingUser, navigate])
 
-  // 3️⃣ Lock browser back/forward buttons
+  // 3 Lock browser back/forward buttons
   useEffect(() => {
     // Push current location twice to prevent back
     window.history.pushState(null, '', location.pathname)
@@ -31,7 +31,7 @@ function ProtectedGameRoute({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [location.pathname])
 
-  // 4️⃣ Loading state
+  // 4 Loading state
   if (isFetchingUser)
     return (
       <div className="flex h-screen items-center justify-center">
@@ -39,7 +39,7 @@ function ProtectedGameRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
 
-  // ✅ All checks passed, render the game
+  // All checks passed, render the game
   return children
 }
 
