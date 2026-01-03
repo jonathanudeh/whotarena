@@ -541,10 +541,10 @@ export async function updateMatchResults(
   const humanPlayerIds = playerIds.filter(isUUID)
   const humanWinnerId = isUUID(winnerId) ? winnerId : null
 
-  console.log('Final match results payload:', {
-    humanPlayerIds,
-    humanWinnerId
-  })
+  // console.log('Final match results payload:', {
+  //   humanPlayerIds,
+  //   humanWinnerId
+  // })
 
   // If NO humans exist  just end match
   if (humanPlayerIds.length === 0) {

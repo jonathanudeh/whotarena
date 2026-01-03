@@ -1,6 +1,5 @@
-// features/rooms/GameBoard.tsx
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useUser } from '../auth/useUser'
 import { useStartGame } from './useStartGame'
 import { useTurnTimer } from './useTurnTimer'
@@ -20,6 +19,7 @@ import PlayerPositions from './components/PlayerPosition'
 import type { GameState } from './types'
 
 export default function GameBoard() {
+  const navigate = useNavigate()
   const { matchId } = useParams<{ matchId: string }>()
   const { user } = useUser()
   const { startGame, isStarting } = useStartGame()
@@ -54,6 +54,20 @@ export default function GameBoard() {
 
   // Game actions
   const gameState = match?.gameState ?? null
+
+  // Redirection to lobby
+  useEffect(() => {
+    if (!match || !gameState) return
+
+    if (gameState.finished || gameState.status === 'finished') {
+      const t = setTimeout(() => {
+        navigate('/lobby', { replace: true })
+      }, 5000)
+
+      return () => clearTimeout(t)
+    }
+  }, [gameState, match, navigate])
+
   const { handlePlayCard, handleChooseShape } = useGameActions({
     matchId: Number(matchId),
     userId,
@@ -117,6 +131,7 @@ export default function GameBoard() {
       <div className="flex h-screen w-full flex-col items-center justify-center text-white">
         <div>Waiting for other player(s)</div>
         <div>Loading game...</div>
+        <SpinnerMini />
       </div>
     )
   }
@@ -175,6 +190,7 @@ export default function GameBoard() {
     </div>
   )
 }
+
 //
 
 /*

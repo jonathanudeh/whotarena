@@ -197,8 +197,6 @@ export async function createGamePrizeTransaction({
   matchId: number
   prizeAmount: number
 }) {
-  console.log('Creating game prize transaction', { winnerId, matchId, prizeAmount })
-
   const { data, error } = await supabase
     .from('walletTransactions')
     .insert([
@@ -221,7 +219,5 @@ export async function createGamePrizeTransaction({
     throw new Error(error.message)
   }
 
-  console.log('Game prize transaction created', data)
-  console.log(data)
   return data
 }

@@ -3,8 +3,6 @@ import { updateMatchResults as updateMatchResultsAPi } from '../../services/apiG
 import toast from 'react-hot-toast'
 
 export function useUpdateMatchResults(onSuccessCallback?: () => void) {
-  // const navigate = useNavigate()
-
   const { mutate: updateMatchResults, isPending: isUpdatingMatchResults } = useMutation({
     mutationFn: ({
       winnerId,
@@ -16,14 +14,9 @@ export function useUpdateMatchResults(onSuccessCallback?: () => void) {
       matchId: number
     }) => updateMatchResultsAPi(winnerId, players, matchId),
     onSuccess: () => {
-      console.log('Match results updated successfully')
       onSuccessCallback?.()
-      // setTimeout(() => {
-      //   navigate('/lobby', { replace: true })
-      // }, 5000)
     },
     onError: (err) => {
-      console.error('Failed to update match results:', err)
       toast.error(err.message)
     }
   })

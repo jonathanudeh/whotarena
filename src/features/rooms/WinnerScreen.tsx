@@ -31,17 +31,10 @@ export default function WinnerScreen({
 
   useEffect(() => {
     if (hasFinalized.current || !winnerId || !matchId) {
-      console.log('WinnerScreen useEffect skipped:', {
-        hasFinalized: hasFinalized.current,
-        winnerId,
-        matchId,
-        prizeAmount
-      })
       return
     }
 
     hasFinalized.current = true
-    console.log('WinnerScreen finalizing:', { winnerId, matchId, prizeAmount, playerIds })
 
     if (!isHumanWinner) {
       return
@@ -49,20 +42,6 @@ export default function WinnerScreen({
 
     updateMatchResults({ winnerId, players: playerIds, matchId })
   }, [winnerId, matchId, prizeAmount, playerIds, isHumanWinner, updateMatchResults, awardGamePrize])
-
-  // Auto-return to lobby
-  useEffect(() => {
-    console.log('Redirect useEffect, isLoading:', isLoading)
-    // if (isLoading) return
-
-    console.log('Setting redirect timeout')
-    const t = setTimeout(() => {
-      console.log('Redirecting to lobby')
-      window.location.replace('/lobby')
-    }, 5000)
-
-    return () => clearTimeout(t)
-  }, [isLoading])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">

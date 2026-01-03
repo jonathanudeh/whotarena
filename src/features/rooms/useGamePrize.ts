@@ -16,13 +16,11 @@ export function useGamePrize() {
       prizeAmount: number
     }) => createGamePrizeTransaction({ winnerId, matchId, prizeAmount }),
     onSuccess: (_, { winnerId }) => {
-      console.log('Prize awarded successfully for winner:', winnerId)
       toast.success('Prize awarded successfully!')
       queryClient.invalidateQueries({ queryKey: ['userBalance', winnerId] })
     },
-    onError: (err) => {
-      console.error('Failed to award prize:', err)
-      toast.error(`Failed to award prize: ${err.message}`)
+    onError: () => {
+      toast.error(`Failed to award prize`)
     }
   })
 
