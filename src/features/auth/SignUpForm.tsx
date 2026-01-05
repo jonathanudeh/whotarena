@@ -19,7 +19,6 @@ function SignUpForm() {
   // const random = Math.random().toString(36).substring(7)
 
   function onSubmit({ email, password, username }: SignUpCredentials) {
-    console.log({ email, password, username })
     signUp(
       { email, password, username },
       {

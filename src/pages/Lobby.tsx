@@ -12,11 +12,11 @@ export default function Lobby() {
   const location = useLocation()
 
   // ensures lobby is always a clean anchor.
-  useEffect(() => {
-    window.history.replaceState(null, '', '/lobby')
-  }, [])
+  // useEffect(() => {
+  //   window.history.replaceState(null, '', '/lobby')
+  // }, [])
 
-  // 3 Lock browser back/forward buttons
+  //  Lock browser back/forward buttons
   useEffect(() => {
     // Push current location twice to prevent back
     window.history.pushState(null, '', location.pathname)
